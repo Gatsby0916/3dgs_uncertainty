@@ -1,90 +1,118 @@
-# Evaluations
-We evaluated the impact of the features we added on MipNeRF360, Tanks&Temples and Deep Blending datasets. [Exposure Compensation](#exposure-compensation) is evaluated separately. Note that [Default rasterizer](#default-rasterizer) refers to the original [3dgs rasterizer](https://github.com/graphdeco-inria/diff-gaussian-rasterization/tree/9c5c2028f6fbee2be239bc4c9421ff894fe4fbe0) and [Accelerated rasterizer](#accelerated-rasterizer) refers to the [taming-3dgs rasterizer](https://github.com/graphdeco-inria/diff-gaussian-rasterization/tree/3dgs_accel).
+# 3D-Gaussian-Splatting ★ Uncertainty Edition
 
-## Default rasterizer
+This fork adds **Fisher‑information–based uncertainty estimation** on top of the official 3‑D Gaussian Splatting (3DGS) codebase.
+All datasets, environment requirements and training commands remain **100 % back‑compatible** with the original repo – you can simply swap the Python package.
 
-### PSNR
+---
 
-![all results PSNR](assets/charts/base_PSNR.png)
+## 1 · Quick start
 
-***DR**:depth regularization, **AA**:antialiasing*
+### 1.1 Install (identical to upstream)
 
-<br>
+```bash
+conda create -n 3dgs python=3.10
+conda activate 3dgs
+pip install -r requirements.txt        # identical `requirements.txt`
+pip install -e .                       # build CUDA rasteriser
+```
+The enviornment setting is just the same as the **Original** 3DGS.
+### 1.2 Train (identical)
 
-![nodepth/depth](assets/depth_comparison.png)
+```bash
+python train.py -s <path_to_dataset>
+# e.g.
+python train.py -s data/tandt/train
+```
 
-### SSIM
-![all results SSIM](assets/charts/base_SSIM.png)
+A fully‑trained scene is saved under
+`output/<scene_id>/` (same structure as upstream).
 
-***DR**:depth regularization, **AA**:antialiasing*
+---
 
-### LPIPS
-![all results LPIPS](assets/charts/base_LPIPS.png)
+## 2 · Render **with uncertainty**
 
-*lower is better, **DR**:depth regularization, **AA**:antialiasing*
+```bash
+python render.py \
+       -m output/<scene_id> \
+       --uncertainty_mode \
+       --patch_size 8 \
+       --top_k 15000
+```
 
-## Accelerated rasterizer
+| switch                | default      | description                                                                                                                                                                                                                               |
+| --------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-m` / `--model_path` | **required** | Path to the saved model folder produced by `train.py`.                                                                                                                                                                                    |
+| `--uncertainty_mode`  | *off*        | Turn on Fisher‑information propagation and output extra heat‑maps & a text log.                                                                                                                                                           |
+| `--patch_size`        | `8`          | Size (in pixels) of the square patches used for first‑pass variance scanning.<br>Smaller → finer localisation but slower; larger → coarser but faster.                                                                                    |
+| `--top_k`             | `15000`      | After the fast scan, only the **top‑K most variant patches** enter the expensive Fisher back‑prop step.<br>Reducing `top_k` speeds up rendering but may miss rare artefacts; increasing gives more accurate maps at the cost of GPU time. |
 
-### Default optimizer
+eg. --patch_size 4 --top_k 30000/--patch_size 6 --top_k 20000
+> Other CLI flags (`--skip_train`, `--iteration`, …) behave exactly as in the
+> original repo.
 
-These numbers were obtained using the accelerated rasterizer and `--optimizer_type default` when training.
+---
 
-#### PSNR
-![all results PSNR](assets/charts/accel_default_PSNR.png)
+## 3 · Outputs
 
-***DR**:depth regularization, **AA**:antialiasing*
+```
+output/<scene_id>/<split>/ours_<iter>/
+│
+├─ renders/        # model predictions (RGB)
+├─ gt/             # ground‑truth images
+├─ uncertainty/    # 3‑channel cividis heat‑maps
+│
+└─ gaussian_uncertainty_record.txt
+```
 
-#### SSIM
-![all results SSIM](assets/charts/accel_default_SSIM.png)
+`gaussian_uncertainty_record.txt`
 
-***DR**:depth regularization, **AA**:antialiasing*
+```
+[View 000]
+  patch_idx     = 9828
+  patch_coords  = (160:164, 112:116)
+  gaussian_idx  = 124578
+```
 
-#### LPIPS
-![all results LPIPS](assets/charts/accel_default_LPIPS.png)
+* **patch\_idx / coords** – the highest‑uncertainty patch in that view.
+* **gaussian\_idx** – the global index of the single Gaussian contributing the
+  most to that patch’s uncertainty.
+  Use this ID to visualise or remove the culprit point.
 
-*lower is better, **DR**:depth regularization, **AA**:antialiasing*
+---
 
-### Sparse Adam optimizer
+## 4 · Advanced / debug knobs
 
-These numbers were obtained using the accelerated rasterizer and `--optimizer_type sparse_adam` when training.
+Open **`gaussian_renderer/__init__.py`** and tweak:
 
-#### PSNR
-![all results PSNR](assets/charts/accel_sparse_adam_PSNR.png)
+```python
+# master switches
+DEBUG = True               # prints Σ‑clipping & Fisher stats
+MAX_CLIP = 30.0            # global σ upper‑bound
+USE_FISHER_SIGMA = True    # turn off to ignore Σ and view only grad‑norm maps
+```
 
-***DR**:depth regularization, **AA**:antialiasing*
+* `DEBUG=True` prints
 
-#### SSIM
-![all results SSIM](assets/charts/accel_sparse_adam_SSIM.png)
+  * Σ‑clip statistics every frame,
+  * `[DBG] ✓ / ✘ …` lines that show candidate Gaussians searched & the selected index.
+* Tighten `MAX_CLIP` to suppress very large Fisher variances.
+* Other heuristics (`K_COLOR`, `gaussian_search_tol`, …) are exposed as kwargs inside `estimate_uncertainty()`.
 
-***DR**:depth regularization, **AA**:antialiasing*
 
-#### LPIPS
-![all results LPIPS](assets/charts/accel_sparse_adam_LPIPS.png)
+## 5 · Citation
 
-*lower is better, **DR**:depth regularization, **AA**:antialiasing*
+Please also cite the original 3‑D Gaussian Splatting paper:
 
-## Exposure compensation
+```bibtex
+@inproceedings{kerbl23gaussians,
+  title     = {{3D} Gaussian Splatting for Real‑Time Radiance Field Rendering},
+  author    = {Kerbl, Bernhard and Kopanas, Georgios and Drettakis, George},
+  booktitle = SIGGRAPH Asia,
+  year      = 2023
+}
+```
 
-We account for exposure variations between images by optimizing a 3x4 affine transform for each image. During training, this transform is applied to the colour of the rendered images.
-The exposure compensation is designed to improve the inputs' coherence during training and is not applied during real-time navigation.
-Enabling the `--train_test_exp` option includes the left half of the test images in the training set, using only their right halves for testing, following the same testing methodology as NeRF-W and Mega-NeRF. This allows us to optimize the exposure affine transform for test views. However, since this setting alters the train/test splits, the resulting metrics are not comparable to those from models trained without it. Here we provide results with `--train_test_exp`, with and without exposure compensation.
+and ***our uncertainty extension (to appear)***.
 
-### PSNR
-
-![exposures_psnr](/assets/charts/exposure_PSNR.png)
-
-### SSIM
-
-![exposures_ssim](/assets/charts/exposure_SSIM.png)
-
-### LPIPS
-
-*Lower is better.*
-![exposures_lpips](/assets/charts/exposure_LPIPS.png)
-
-![noexposure/exposure](assets/Exposure_comparison.png)
-
-## Training times comparisons
-
-We report the training times with all features enabled using the original 3dgs rasterizer *(baseline)* and the accelerated rasterizer with default optimizer then sparse adam.
-![Training-times](assets/charts/timings.png)
+Enjoy probing what your Gaussians “don’t know”!
+Contributions & bug‑reports are welcome.
