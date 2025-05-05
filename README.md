@@ -1,4 +1,4 @@
-# 3D-Gaussian-Splatting ★ Uncertainty Edition
+# Uncertainty estimation on 3D-Gaussian-Splatting 
 
 This fork adds **Fisher‑information–based uncertainty estimation** on top of the official 3‑D Gaussian Splatting (3DGS) codebase.
 All datasets, environment requirements and training commands remain **100 % back‑compatible** with the original repo – you can simply swap the Python package.
