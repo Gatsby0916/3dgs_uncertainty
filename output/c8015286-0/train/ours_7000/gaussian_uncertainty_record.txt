@@ -1,0 +1,6 @@
+Gaussian-Uncertainty Record
+[View 000]
+  patch_idx     = 4976
+  patch_coords  = (320:328, 768:776)
+  gaussian_idx  = 629768
+

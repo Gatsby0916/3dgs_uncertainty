@@ -27,7 +27,7 @@ from utils.sh_utils       import eval_sh
 # ---------------- global debug switches ----------------
 DEBUG             = False          # master print switch
 USE_FISHER_SIGMA  = True           # enable Fisher sigma usage
-K_COLOR           = 5.0            # color weight for Fisher Sigma
+K_COLOR           = 8.0            # color weight for Fisher Sigma
 # Fisher Sigma clipping upper bound; None disables clipping
 MAX_CLIP: float | None = 30.0
 # -------------------------------------------------------
@@ -533,7 +533,7 @@ def estimate_uncertainty(viewpoint_camera,
             viewpoint_camera, pc, pipe, bg_color,
             (wy0,wy1,wx0,wx1), cov_flat_dict,K_COLOR,
             separate_sh, override_color, use_trained_exp,
-            patch_size, gaussian_search_tol=max(patch_size*6,48)
+            patch_size, gaussian_search_tol=max(patch_size*2,24)
         )
     except RuntimeError:
         pass
@@ -570,7 +570,7 @@ def estimate_uncertainty(viewpoint_camera,
 def find_max_uncertainty_gaussian_in_patch(
         viewpoint_camera, pc, pipe, bg_color,
         patch_coords, cov_flat_dict,
-        K_COLOR: float = 5.0,
+        K_COLOR: float = K_COLOR,
         separate_sh: bool = False,
         override_color = None,
         use_trained_exp: bool = False,
