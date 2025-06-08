@@ -211,16 +211,19 @@ class GaussianModel:
         Update diagonal covariance via Fisher-EMA using parameter gradients.
         Skips update if loss change <2% to save computation.
         """
-        # Skip if loss change is too small
-        if loss_scalar is not None and hasattr(self, '_prev_loss_scalar'):
-            if abs(loss_scalar - self._prev_loss_scalar) < 0.02 * self._prev_loss_scalar:
-                return
+        # Skip if loss change is too small, but force an update every 1000 iterations
+        if (loss_scalar is not None and hasattr(self, '_prev_loss_scalar') and
+            abs(loss_scalar - self._prev_loss_scalar) < 0.02 * self._prev_loss_scalar and
+            (cur_iter % 1000 != 0)):   # ← 强制周期性更新
+            return
         if loss_scalar is not None:
             self._prev_loss_scalar = loss_scalar
 
+
         # Compute dynamic alpha from training progress
         prog = cur_iter / max_iter
-        alpha_dyn = 0.9 * (1.0 - 0.5 * prog)
+        # Exponential decay: smooth in the beginning, still adaptive in the end
+        alpha_dyn = 0.95 ** (1.5 * prog)
         if cur_iter % 2000 == 0:
             logging.info(f"[Fisher-EMA] iteration {cur_iter}: alpha={alpha_dyn:.3f}")
 
@@ -271,6 +274,11 @@ class GaussianModel:
             else:                                         # 对角矩阵
                 eye = torch.eye(D, device=var.device).unsqueeze(0)
                 setattr(self, cov_name, var.unsqueeze(-1) * eye)
+        if cur_iter in (5000, 7000, 10000, 15000):
+            sig_xyz = self._xyz_cov.diagonal(-2,-1).mean().item()
+            sig_color = self._features_rest_cov.mean().item()
+            print(f"[{cur_iter}] σ_xyz={sig_xyz:.2e}, σ_color={sig_color:.2e}")
+
 
     def create_from_pcd(self, pcd: BasicPointCloud, cam_infos: int, spatial_lr_scale: float):
         self.spatial_lr_scale = spatial_lr_scale

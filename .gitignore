@@ -6,3 +6,8 @@ diff_rasterization/dist
 tensorboard_3d
 screenshots
 /output/
+3dgs_tool/
+data/
+images/
+result.txt
+reconstruction_eval.txt

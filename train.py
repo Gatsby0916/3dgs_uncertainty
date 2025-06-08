@@ -86,7 +86,10 @@ def training(dataset, opt, pipe, testing_iterations,
     viewpoint_indices = list(range(len(viewpoint_stack)))
 
     ema_loss, ema_Ldepth = 0.0, 0.0
-    progress = tqdm(range(first_iter, opt.iterations), desc="Training")
+    progress = tqdm(range(first_iter, opt.iterations),
+                desc="Training",
+                disable=args.quiet)          # ← 加了 disable
+
     first_iter += 1  # adjust start of loop
 
     for iteration in range(first_iter, opt.iterations + 1):
@@ -149,13 +152,14 @@ def training(dataset, opt, pipe, testing_iterations,
         if "f_rest" in grads_dict:
             grads_dict["f_rest"] *= 5.0
         grad_boost = dict(
-            xyz      = 200.0,
+            xyz      = 300.0,
             scaling  = 40.0,
             rotation = 40.0,
             opacity  = 500.0,
             f_dc     = 3000.0,
-            f_rest   = 500.0
+            f_rest   = float(os.getenv("GRAD_BOOST_F_REST", "800"))
         )
+
         for name, g in grads_dict.items():
             grads_dict[name] = g * grad_boost.get(name, 1.0)
 
@@ -227,7 +231,7 @@ def training(dataset, opt, pipe, testing_iterations,
         if iteration in checkpoint_iterations:
             torch.save((gaussians.capture(), iteration),
                        os.path.join(scene.model_path, f"chkpnt{iteration}.pth"))
-
+    print("[config] grad_boost[f_rest] =", grad_boost["f_rest"])
     print("\nTraining complete.")
 
 # ╭────────────────── Auxiliary Functions ──────────────────╯ #
@@ -268,9 +272,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug_from", type=int, default=-1)
     parser.add_argument("--detect_anomaly", action="store_true")
     parser.add_argument("--test_iterations", nargs="+", type=int,
-                        default=[7_000, 30_000])
+                        default=[5_000, 7_000, 1_0000])
     parser.add_argument("--save_iterations", nargs="+", type=int,
-                        default=[7_000, 30_000])
+                        default=[5_000, 7_000, 1_0000])
     parser.add_argument("--quiet",  action="store_true")
     parser.add_argument("--disable_viewer", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[]
