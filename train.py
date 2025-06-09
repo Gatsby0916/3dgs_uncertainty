@@ -44,10 +44,20 @@ try:
     SPARSE_ADAM_AVAILABLE = True
 except ImportError:
     SPARSE_ADAM_AVAILABLE = False
-import numpy as np
-def load_seg_prob(cam):
-    seg_path = os.path.join(dataset.seg_dir, cam.image_name + ".npy")
-    return torch.from_numpy(np.load(seg_path)).float().cuda()
+import numpy as np                          # ← 新增
+
+# ───────────────── segmentation helper ────────────────
+def load_seg_prob(seg_dir: str, cam) -> torch.Tensor:
+    """
+    根据 camera.image_name 读取 .npy 前景概率图 → cuda FloatTensor (H,W)
+    支持原图名带扩展(.png/.jpg)的情况
+    """
+    stem, _ = os.path.splitext(cam.image_name)   # 去掉 .png
+    path = os.path.join(seg_dir, stem + ".npy")
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"[seg] {path} does not exist")
+    return torch.from_numpy(np.load(path)).float().cuda()
+
 
 # ╭─────────────────── Core Training Loop ──────────────────────────╮ #
 def training(dataset, opt, pipe, testing_iterations,
@@ -90,6 +100,7 @@ def training(dataset, opt, pipe, testing_iterations,
     viewpoint_indices = list(range(len(viewpoint_stack)))
 
     ema_loss, ema_Ldepth = 0.0, 0.0
+    use_seg = bool(args.seg_dir)
     progress = tqdm(range(first_iter, opt.iterations),
                 desc="Training",
                 disable=args.quiet)          # ← 加了 disable
@@ -121,6 +132,12 @@ def training(dataset, opt, pipe, testing_iterations,
         if viewpoint_cam.alpha_mask is not None:
             image *= viewpoint_cam.alpha_mask.cuda()
 
+        # ─── 1) accumulate segmentation stats ─────────────────────
+        if use_seg:
+            seg_map = load_seg_prob(args.seg_dir, viewpoint_cam)       # [H,W]
+            vis_idx = render_pkg["visibility_filter"][:, 0]           # Long[M]
+            gaussians.accumulate_segmentation(vis_idx, seg_map)
+        # ───────────────────────────────────────────────────────────
         # Compute L1 and SSIM losses
         Ll1   = l1_loss(image, gt_img)
         ssimv = (
@@ -174,7 +191,13 @@ def training(dataset, opt, pipe, testing_iterations,
             max_iter   = opt.iterations,
             loss_scalar= loss.item()
         )
-
+        # ─── 2) 定期刷新 seg_mask & 可选硬裁剪 ─────────────────────
+        if use_seg and (iteration % args.seg_update_interval == 0):
+            to_prune = gaussians.compute_seg_prob_and_mask(
+                beta=args.seg_beta, tau=args.seg_tau)
+            if to_prune is not None and to_prune.any():
+                gaussians.prune_points(to_prune)
+        # ───────────────────────────────────────────────────────────
         # 2. Update learning rate schedule
         gaussians.update_learning_rate(iteration)
 
@@ -284,6 +307,11 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[]
     )
     parser.add_argument("--start_checkpoint", type=str, default=None)
+    # ───── segmentation control ─────
+    parser.add_argument("--seg_dir", type=str, default="", help="folder with *.npy foreground-prob maps")
+    parser.add_argument("--seg_beta", type=float, default=5.0, help="soft mask coefficient β")
+    parser.add_argument("--seg_tau",  type=float, default=None, help="hard prune threshold τ (0-1); None → soft only")
+    parser.add_argument("--seg_update_interval", type=int, default=250, help="iterations between seg mask refresh")
 
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
