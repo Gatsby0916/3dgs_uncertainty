@@ -44,6 +44,10 @@ try:
     SPARSE_ADAM_AVAILABLE = True
 except ImportError:
     SPARSE_ADAM_AVAILABLE = False
+import numpy as np
+def load_seg_prob(cam):
+    seg_path = os.path.join(dataset.seg_dir, cam.image_name + ".npy")
+    return torch.from_numpy(np.load(seg_path)).float().cuda()
 
 # ╭─────────────────── Core Training Loop ──────────────────────────╮ #
 def training(dataset, opt, pipe, testing_iterations,

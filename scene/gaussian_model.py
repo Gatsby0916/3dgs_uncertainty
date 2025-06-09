@@ -93,6 +93,12 @@ class GaussianModel:
         self._f_dc_fisher_buf = self._f_rest_fisher_buf = torch.empty(0)
         self._opacity_fisher_buf = torch.empty(0)
 
+        self._seg_sum  = torch.zeros(0, device="cuda")   # Σ α·s    (S_i)
+        self._seg_cnt  = torch.zeros(0, device="cuda")   # Σ α      (n_i)
+        self._seg_prob = torch.zeros(0, device="cuda")   # p_i cache
+        self._seg_mask = torch.ones (0, device="cuda")   # m_i  (soft/hard)
+
+
         self.setup_functions()
 
     # ========== Snapshot State ==========
@@ -113,22 +119,27 @@ class GaussianModel:
             self._xyz_fisher_buf, self._opacity_fisher_buf,
             self._scaling_fisher_buf, self._rotation_fisher_buf,
             self._f_dc_fisher_buf, self._f_rest_fisher_buf,
+            self._seg_sum, self._seg_cnt, self._seg_prob, self._seg_mask
         )
 
+    # ========== Restore State ==========
     # ========== Restore State ==========
     def restore(self, packed, training_args,
                 *, clip_percentile: float = 99.0, min_floor: float = 1e-4):
         """
-        Restore model from a snapshot. Supports two formats:
-          • v1: 24 fields (no exposure term)
-          • v2: 25 fields (includes exposure)
+        Restore model from a snapshot.
+        Snapshot 格式说明
+        ----------------
+        v1: 24 fields  — 无 exposure, 无 seg_*                (2023-07)
+        v2: 25 fields  — 有 exposure, 无 seg_*                (原官方)
+        v3: 29 fields  — 有 exposure, 有 seg_sum/cnt/prob/mask (本项目)
         """
         ver = len(packed)
-        if ver not in (24, 25):
+        if ver not in (24, 25, 29):
             raise ValueError(f"[restore] Unknown snapshot length {ver}")
 
+        # ---------- v1 (24) 旧模型 ----------
         if ver == 24:
-            logging.warning("Old snapshot format detected – converting to current format")
             (
                 active_sh_degree,
                 _xyz, _f_dc, _f_rest, _scaling, _rotation, _opacity,
@@ -141,7 +152,14 @@ class GaussianModel:
                 _rotation_fisher, _f_dc_fisher, _f_rest_fisher,
             ) = packed
             _exposure = torch.eye(3, 4, device="cuda")[None]
-        else:
+            # seg_* 全零 / 全一
+            _seg_sum  = torch.zeros_like(_xyz[:, 0])
+            _seg_cnt  = torch.zeros_like(_xyz[:, 0])
+            _seg_prob = torch.zeros_like(_xyz[:, 0])
+            _seg_mask = torch.ones_like (_xyz[:, 0])
+
+        # ---------- v2 (25) 官方格式 ----------
+        elif ver == 25:
             (
                 active_sh_degree, spatial_lr_scale,
                 _xyz, _f_dc, _f_rest, _scaling, _rotation, _opacity, _exposure,
@@ -152,8 +170,26 @@ class GaussianModel:
                 _xyz_fisher, _opacity_fisher, _scaling_fisher,
                 _rotation_fisher, _f_dc_fisher, _f_rest_fisher,
             ) = packed
+            _seg_sum  = torch.zeros_like(_xyz[:, 0])
+            _seg_cnt  = torch.zeros_like(_xyz[:, 0])
+            _seg_prob = torch.zeros_like(_xyz[:, 0])
+            _seg_mask = torch.ones_like (_xyz[:, 0])
 
-        # Assign restored values to attributes
+        # ---------- v3 (29) 含分割 ----------
+        else:  # ver == 29
+            (
+                active_sh_degree, spatial_lr_scale,
+                _xyz, _f_dc, _f_rest, _scaling, _rotation, _opacity, _exposure,
+                max_r2d, xyz_accum, denom,
+                opt_state_dict,
+                _xyz_cov, _opacity_cov, _scaling_cov,
+                _rotation_cov, _f_dc_cov, _f_rest_cov,
+                _xyz_fisher, _opacity_fisher, _scaling_fisher,
+                _rotation_fisher, _f_dc_fisher, _f_rest_fisher,
+                _seg_sum, _seg_cnt, _seg_prob, _seg_mask,
+            ) = packed
+
+        # ---------- 写回属性 ----------
         self.active_sh_degree, self.spatial_lr_scale = active_sh_degree, spatial_lr_scale
         self._xyz, self._features_dc, self._features_rest = _xyz, _f_dc, _f_rest
         self._scaling, self._rotation, self._opacity      = _scaling, _rotation, _opacity
@@ -169,14 +205,18 @@ class GaussianModel:
         self._scaling_fisher_buf, self._rotation_fisher_buf  = _scaling_fisher, _rotation_fisher
         self._f_dc_fisher_buf,  self._f_rest_fisher_buf      = _f_dc_fisher, _f_rest_fisher
 
-        # Rebuild optimizer and load its state
+        self._seg_sum, self._seg_cnt   = _seg_sum,  _seg_cnt
+        self._seg_prob, self._seg_mask = _seg_prob, _seg_mask
+
+        # ---------- 恢复优化器 ----------
         self.training_setup(training_args)
         if opt_state_dict:
             self.optimizer.load_state_dict(opt_state_dict)
 
-        # Sanitize covariance matrices post-restore
+        # ---------- 数值安全 ----------
         self._post_restore_sanitize_cov(clip_percentile, min_floor)
-        logging.info(f"[restore] Covariances clamped to minimum {min_floor}")
+        logging.info(f"[restore] snapshot v{ver} loaded — covariances clamped to ≥{min_floor}")
+
 
     # ----- Covariance Sanitization Helper -----
     def _post_restore_sanitize_cov(self,
@@ -231,6 +271,8 @@ class GaussianModel:
         for pname, grad in grads_dict.items():
             if grad is None or grad.numel() == 0:
                 continue
+            if self._seg_mask.numel():                    # ← 新增行
+                grad = grad * self._seg_mask.unsqueeze(-1)
             eps, var_ceil0 = FISHER_CFG.get(pname, (DEFAULT_EPS, DEFAULT_CEIL))
             var_ceil_dyn = max(var_floor * 10.0, var_ceil0 * (1.0 - 0.5 * prog))
 
@@ -933,3 +975,36 @@ class GaussianModel:
             return torch.cat(cov_list)
         else:
             return torch.tensor([], requires_grad=True)
+
+    # ---------- A. 逐帧累积 ----------
+    @torch.no_grad()
+    def accumulate_segmentation(self, vis_idx: torch.Tensor, seg_map: torch.Tensor):
+        """
+        vis_idx : LongTensor [M]  — visibility_filter[:,0] (可见高斯索引)
+        seg_map : FloatTensor [H,W] in 0~1
+        """
+        if self._seg_sum.numel() == 0:
+            N = self._xyz.shape[0]
+            self._seg_sum  = torch.zeros(N, device="cuda")
+            self._seg_cnt  = torch.zeros(N, device="cuda")
+            self._seg_prob = torch.zeros(N, device="cuda")
+            self._seg_mask = torch.ones (N, device="cuda")
+
+        fg_mean = seg_map.mean()              # MVP：整帧平均前景概率
+        self._seg_sum[vis_idx] += fg_mean
+        self._seg_cnt[vis_idx] += 1.0
+
+    # ---------- B. 周期性刷新掩码 ----------
+    @torch.no_grad()
+    def compute_seg_prob_and_mask(self, *, beta: float = 5.0, tau: float | None = None):
+        eps            = 1e-6
+        self._seg_prob = self._seg_sum / (self._seg_cnt + eps)
+
+        if tau is None:                               # 软掩码
+            self._seg_mask = beta * self._seg_prob
+            return None
+        else:                                         # 硬裁剪
+            keep          = (self._seg_prob > tau)
+            self._seg_mask= keep.float()
+            return ~keep                              # 返回 should-delete mask
+    # -----------------------------------
