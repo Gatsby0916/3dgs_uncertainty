@@ -399,7 +399,7 @@ def render_with_grad(viewpoint_camera,
     }
 
 # =========================================================
-#  V.  Uncertainty Estimation (Patch / Top-K Acceleration)
+#  V.  Uncertainty Estimation 
 # =========================================================
 def estimate_uncertainty(viewpoint_camera,
                          pc                  : GaussianModel,
@@ -413,14 +413,13 @@ def estimate_uncertainty(viewpoint_camera,
                          patch_size          : int = 4,
                          K_COLOR             : float = 5.0,
                          cov_flat_dict       : dict | None = None,
-                         top_k               : int = 20000,
                          return_gaussian     : bool = False,
                          gaussian_search_tol : int = 2,
                          *, DEBUG: bool = True):
     """
     Estimate pixel/patch uncertainty using first-order Taylor expansion
-    and diagonal Fisher covariance. First scan gray-scale variance to
-    select top-K patches, then backpropagate gradients for acceleration.
+    and diagonal Fisher covariance. Patch variance is used for rough localisation before accumulating full gradients.
+
 
     Args
     ----
@@ -436,7 +435,6 @@ def estimate_uncertainty(viewpoint_camera,
     patch_size           : int, side length of square patch (pixels)
     K_COLOR              : float, weight for color parameters
     cov_flat_dict        : optional cached Fisher covariance dict
-    top_k                : int, number of highest-variance patches to process
     return_gaussian      : bool, include index of single worst Gaussian
     gaussian_search_tol  : int, pixel tol when localizing worst Gaussian
     DEBUG                : bool, print debug info
@@ -454,21 +452,12 @@ def estimate_uncertainty(viewpoint_camera,
 
     global _first_verbose_call
 
-    # ———— patch 全量开关 ————
-    # If top_k ≤ 0 or not specified, use ALL patches (no top-K filtering)
-    H = int(viewpoint_camera.image_height)
-    W = int(viewpoint_camera.image_width)
-    patch_H = math.ceil(H / patch_size)
-    patch_W = math.ceil(W / patch_size)
-    if top_k is None or top_k <= 0:
-        top_k = patch_H * patch_W
-    # ————————————————————
+
 
     if VERBOSE_RENDER_STATS and _first_verbose_call:
         _first_verbose_call = False
         print("\n══════════  Uncertainty-render verbose stats  ══════════")
         print(f"patch_size        = {patch_size}")
-        print(f"top_k patches     = {top_k}")
         print(f"K_COLOR weight    = {K_COLOR}")
         print(f"USE_FISHER_SIGMA  = {USE_FISHER_SIGMA}")
         print(f"MAX_CLIP          = {MAX_CLIP}")
@@ -488,6 +477,9 @@ def estimate_uncertainty(viewpoint_camera,
         use_trained_exp=use_trained_exp
     )
     rendered_image = render_dict["render"]  # [3, H, W]
+    H = int(viewpoint_camera.image_height)
+    W = int(viewpoint_camera.image_width)
+
 
     # 2. Gather or reuse Fisher covariance
     if cov_flat_dict is None:
@@ -506,15 +498,8 @@ def estimate_uncertainty(viewpoint_camera,
     flat_mean     = patch_mean.squeeze().flatten()
     score         = patch_flat + 0.05 / (flat_mean + 1e-4)
 
-    # 4. Select top-K patches (or all, if top_k = total)
-    if top_k < score.numel():
-        top_idx     = torch.topk(score, k=top_k, sorted=False).indices
-        active_mask = torch.zeros_like(patch_flat, dtype=torch.bool)
-        active_mask[top_idx] = True
-    else:
-        active_mask = torch.ones_like(patch_flat, dtype=torch.bool)
-
-    # 5. Accumulate Taylor-Fisher uncertainty on each selected patch
+    # 4. Process all patches 
+    active_mask = torch.ones_like(patch_flat, dtype=torch.bool)
     patch_unc = torch.zeros_like(patch_flat)
     for flat_idx in active_mask.nonzero(as_tuple=True)[0]:
         i, j = divmod(flat_idx.item(), cols)

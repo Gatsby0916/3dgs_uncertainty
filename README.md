@@ -35,8 +35,7 @@ A fully‑trained scene is saved under
 python render.py \
        -m output/<scene_id> \
        --uncertainty_mode \
-       --patch_size 8 \
-       --top_k 15000
+       --patch_size 8 
 ```
 
 | switch                | default      | description                                                                                                                                                                                                                               |
@@ -44,9 +43,7 @@ python render.py \
 | `-m` / `--model_path` | **required** | Path to the saved model folder produced by `train.py`.                                                                                                                                                                                    |
 | `--uncertainty_mode`  | *off*        | Turn on Fisher‑information propagation and output extra heat‑maps & a text log.                                                                                                                                                           |
 | `--patch_size`        | `8`          | Size (in pixels) of the square patches used for first‑pass variance scanning.<br>Smaller → finer localisation but slower; larger → coarser but faster.                                                                                    |
-| `--top_k`             | `15000`      | After the fast scan, only the **top‑K most variant patches** enter the expensive Fisher back‑prop step.<br>Reducing `top_k` speeds up rendering but may miss rare artefacts; increasing gives more accurate maps at the cost of GPU time. |
-
-eg. --patch_size 4 --top_k 30000/--patch_size 6 --top_k 20000
+eg. --patch_size 1 --patch_size 6 
 > Other CLI flags (`--skip_train`, `--iteration`, …) behave exactly as in the
 > original repo.
 

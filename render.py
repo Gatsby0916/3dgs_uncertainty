@@ -39,7 +39,6 @@ def render_set(model_path,
                *,
                uncertainty_mode=False,
                patch_size=8,
-               top_k=15000,
                max_views: int = 0,
                view_ids: list[int] | None = None):
     """
@@ -83,7 +82,6 @@ def render_set(model_path,
                     separate_sh      = separate_sh,
                     use_trained_exp  = train_test_exp,
                     patch_size       = patch_size,
-                    top_k            = top_k,
                     return_raw       = True   # 返回原始不确定性数据
                 )
         else:
@@ -166,7 +164,6 @@ def render_sets(dataset: ModelParams,
                 *,
                 uncertainty_mode: bool,
                 patch_size: int,
-                top_k: int,
                 max_views: int = 0,
                 view_ids: list[int] | None = None):
     """
@@ -186,7 +183,7 @@ def render_sets(dataset: ModelParams,
                 gaussians, pipeline, background, dataset.train_test_exp,
                 separate_sh,
                 uncertainty_mode=uncertainty_mode,
-                patch_size=patch_size, top_k=top_k,
+                patch_size=patch_size,
                 max_views=max_views, view_ids=view_ids
             )
         if not skip_test:
@@ -196,7 +193,7 @@ def render_sets(dataset: ModelParams,
                 gaussians, pipeline, background, dataset.train_test_exp,
                 separate_sh,
                 uncertainty_mode=uncertainty_mode,
-                patch_size=patch_size, top_k=top_k,
+                patch_size=patch_size,
                 max_views=max_views, view_ids=view_ids
             )
 
@@ -220,9 +217,6 @@ if __name__ == "__main__":
                         help="渲染并保存不确定性热图及原始数据")
     parser.add_argument("--patch_size",       type=int, default=8,
                         help="不确定性补丁尺寸")
-    parser.add_argument("--top_k",            type=int, default=15000,
-                        help="保留 top-k 补丁计算梯度")
-
     # 渲染视角控制
     parser.add_argument("--max_views", type=int, default=0,
                         help="渲染的最多视图数（0=无限制）")
@@ -248,7 +242,6 @@ if __name__ == "__main__":
         SPARSE_ADAM_AVAILABLE,
         uncertainty_mode=args.uncertainty_mode,
         patch_size=args.patch_size,
-        top_k=args.top_k,
         max_views=args.max_views,
         view_ids=view_ids
     )

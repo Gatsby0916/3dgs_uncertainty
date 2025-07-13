@@ -212,6 +212,19 @@ class GaussianModel:
         self.training_setup(training_args)
         if opt_state_dict:
             self.optimizer.load_state_dict(opt_state_dict)
+        # ---------- Fisher diag backward-compat ----------
+
+        if not hasattr(self, "fisher_diag"):
+            # packed 仍在本作用域
+            if isinstance(packed, tuple) and len(packed) > 9:
+                cand = packed[9]
+                if isinstance(cand, torch.Tensor) and cand.ndim == 1:
+                    self.fisher_diag = cand.cuda()
+                    logging.info(f"[restore] fisher_diag loaded from tuple[9], "
+                                 f"len={cand.numel()} (legacy format)")
+            if not hasattr(self, "fisher_diag"):
+                raise RuntimeError("fisher_diag not found in checkpoint; "
+                                   "please re-train or save it explicitly.")
 
         # ---------- 数值安全 ----------
         self._post_restore_sanitize_cov(clip_percentile, min_floor)
@@ -940,6 +953,15 @@ class GaussianModel:
         with torch.no_grad():
             self._xyz.data.clamp_(-1e5,1e5)
             self._scaling.data.clamp_(-10,10)
+            # -------- Fisher utilities --------
+    def get_fisher_inv_diag(self):
+        """
+        Returns a 1-D tensor (cuda) that concatenates the inverse-Fisher
+        diagonal of every learnable parameter in *exactly the same order*
+        as autograd produces Jacobian columns during render_with_grad().
+        """
+        return 1.0 / (self.fisher_diag + 1e-6)
+
 
     @property
     def get_parameters(self):
