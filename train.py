@@ -25,7 +25,7 @@ from utils.general_utils  import safe_state, get_expon_lr_func
 from gaussian_renderer    import render, network_gui
 from scene                import Scene, GaussianModel
 from arguments            import ModelParams, PipelineParams, OptimizationParams
-
+import pathlib
 # ──────────────────── Optional / Backend Libraries ────────────────────── #
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -77,6 +77,28 @@ def training(dataset, opt, pipe, testing_iterations,
     # Create GaussianModel and Scene instances
     gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
     scene     = Scene(dataset, gaussians)
+        # ─── 过滤训练视图 (train_split) ──────────────────────────────
+    if hasattr(args, "train_split") and args.train_split:
+        import pathlib
+        keep = set(line.strip() for line in open(args.train_split))
+        before_total = sum(len(lst) for lst in scene.train_cameras.values())
+
+        new_dict = {}
+        for scale, cam_list in scene.train_cameras.items():
+            filtered = []
+            for cam in cam_list:
+                img_name = getattr(cam, "image_name", None)
+                if img_name is None:
+                    filtered.append(cam)                # 非 Camera 对象，直接保留
+                elif pathlib.Path(img_name).stem in keep:
+                    filtered.append(cam)                # 在 split 中，保留
+            new_dict[scale] = filtered
+
+        scene.train_cameras = new_dict
+        after_total = sum(len(lst) for lst in scene.train_cameras.values())
+        print(f"[train_split] keep {after_total} / {before_total}  views")
+
+
     gaussians.training_setup(opt)
 
     # Resume from checkpoint if provided
@@ -299,9 +321,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug_from", type=int, default=-1)
     parser.add_argument("--detect_anomaly", action="store_true")
     parser.add_argument("--test_iterations", nargs="+", type=int,
-                        default=[5_000, 7_000, 1_0000])
+                        default=[3_0000])
     parser.add_argument("--save_iterations", nargs="+", type=int,
-                        default=[5_000, 7_000, 1_0000])
+                        default=[3_0000])
     parser.add_argument("--quiet",  action="store_true")
     parser.add_argument("--disable_viewer", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[]
@@ -312,6 +334,7 @@ if __name__ == "__main__":
     parser.add_argument("--seg_beta", type=float, default=5.0, help="soft mask coefficient β")
     parser.add_argument("--seg_tau",  type=float, default=None, help="hard prune threshold τ (0-1); None → soft only")
     parser.add_argument("--seg_update_interval", type=int, default=250, help="iterations between seg mask refresh")
+    parser.add_argument("--train_split", type=str, default="", help="txt file with training split")
 
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)

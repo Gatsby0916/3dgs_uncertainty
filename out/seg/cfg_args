@@ -1,1 +1,0 @@
-Namespace(sh_degree=3, source_path='C:\\Users\\¿Ó∫£“„\\Desktop\\CVlearning\\3DGS_uncertainty\\gaussian-splatting\\data\\LF\\basket', model_path='out/seg', images='images', depths='', resolution=-1, white_background=False, train_test_exp=False, data_device='cuda', eval=False)

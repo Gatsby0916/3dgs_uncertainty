@@ -399,73 +399,33 @@ def render_with_grad(viewpoint_camera,
     }
 
 # =========================================================
-#  V.  Uncertainty Estimation 
+#  V.  Uncertainty Estimation (Mask‐Aware Patch Skip)
 # =========================================================
-def estimate_uncertainty(viewpoint_camera,
-                         pc                  : GaussianModel,
-                         pipe,
-                         bg_color            : torch.Tensor,
-                         scaling_modifier    : float = 1.0,
-                         separate_sh         : bool = False,
-                         override_color      = None,
-                         use_trained_exp     : bool = False,
-                         return_raw          : bool = False,
-                         patch_size          : int = 4,
-                         K_COLOR             : float = 5.0,
-                         cov_flat_dict       : dict | None = None,
-                         return_gaussian     : bool = False,
-                         gaussian_search_tol : int = 2,
-                         *, DEBUG: bool = True):
+def estimate_uncertainty(
+    viewpoint_camera,
+    pc: GaussianModel,
+    pipe,
+    bg_color: torch.Tensor,
+    *,
+    scaling_modifier: float = 1.0,
+    separate_sh: bool = False,
+    override_color=None,
+    use_trained_exp: bool = False,
+    return_raw: bool = False,
+    patch_size: int = 4,
+    K_COLOR: float = 5.0,
+    cov_flat_dict: dict | None = None,
+    mask_prob: np.ndarray | torch.Tensor | None = None,
+    thr: float = 0.3,
+    DEBUG: bool = False,
+):
     """
-    Estimate pixel/patch uncertainty using first-order Taylor expansion
-    and diagonal Fisher covariance. Patch variance is used for rough localisation before accumulating full gradients.
-
-
-    Args
-    ----
-    viewpoint_camera     : Camera object
-    pc                   : GaussianModel instance
-    pipe                 : config wrapper with debug, antialiasing, etc.
-    bg_color             : (3,) GPU tensor in [0,1]
-    scaling_modifier     : float, uniform scale factor
-    separate_sh          : bool, whether to separate DC & residual SH
-    override_color       : Tensor or None, if given ignore SH features
-    use_trained_exp      : bool, apply exposure transform as trained
-    return_raw           : bool, return raw uncertainty heatmap
-    patch_size           : int, side length of square patch (pixels)
-    K_COLOR              : float, weight for color parameters
-    cov_flat_dict        : optional cached Fisher covariance dict
-    return_gaussian      : bool, include index of single worst Gaussian
-    gaussian_search_tol  : int, pixel tol when localizing worst Gaussian
-    DEBUG                : bool, print debug info
-
-    Returns
-    -------
-    dict with keys:
-        "render"           : rendered image tensor
-        "uncertainty"      : RGB heatmap tensor
-        "max_patch_idx"    : index of worst patch
-        "max_patch_coords" : (y0,y1,x0,x1) of that patch
-        "max_gaussian_idx" : (optional) index of worst Gaussian
-        "uncertainty_raw"  : (optional) raw grayscale uncertainty
+    Mask‐aware patch‐level uncertainty. 只对 mask_prob>=thr 的 patch 计算。
+    mask_prob: (H,W) 或 (1,H,W) 的概率图；必须与渲染输出精确对齐。
+    thr      : 过滤阈值，大于等于 thr 的像素才算前景。
     """
-
-    global _first_verbose_call
-
-
-
-    if VERBOSE_RENDER_STATS and _first_verbose_call:
-        _first_verbose_call = False
-        print("\n══════════  Uncertainty-render verbose stats  ══════════")
-        print(f"patch_size        = {patch_size}")
-        print(f"K_COLOR weight    = {K_COLOR}")
-        print(f"USE_FISHER_SIGMA  = {USE_FISHER_SIGMA}")
-        print(f"MAX_CLIP          = {MAX_CLIP}")
-        print("════════════════════════════════════════════════════════\n")
-
-    # 1. Differentiable render to get gradients later
     params = get_params_for_grad(pc, requires_grad=True)
-    render_dict = render_with_grad(
+    rd = render_with_grad(
         viewpoint_camera,
         params["xyz"], params["opacity"],
         params["scaling"], params["rotation"],
@@ -474,66 +434,98 @@ def estimate_uncertainty(viewpoint_camera,
         scaling_modifier=scaling_modifier,
         separate_sh=separate_sh,
         override_color=override_color,
-        use_trained_exp=use_trained_exp
+        use_trained_exp=use_trained_exp,
     )
-    rendered_image = render_dict["render"]  # [3, H, W]
-    H = int(viewpoint_camera.image_height)
-    W = int(viewpoint_camera.image_width)
+    img = rd["render"]                   # [3, H, W]
+    H, W = img.shape[1], img.shape[2]
 
+    # ‒‒ 2) 构造 patch_keep 掩码 ‒‒
+    if mask_prob is not None:
+        # 转为 torch.tensor 并 squeeze
+        prob_t = (torch.from_numpy(mask_prob)
+                  if isinstance(mask_prob, np.ndarray)
+                  else mask_prob).to(img.device).float().squeeze()
+        if prob_t.shape != (H, W):
+            raise ValueError(f"Mask size {prob_t.shape} != render size {(H,W)}")
+        if patch_size == 1:
+            patch_keep = prob_t >= thr
+        else:
+            # 每个 patch 内取最大，ceil_mode 保证跟下面 rows/cols 一致
+            pooled = F.max_pool2d(
+                prob_t[None,None],
+                kernel_size=patch_size,
+                stride=patch_size,
+                ceil_mode=True
+            ).squeeze()  # shape = (rows, cols)
+            patch_keep = pooled >= thr
+    else:
+        patch_keep = None  # 全图都保留
 
-    # 2. Gather or reuse Fisher covariance
+    # ‒‒ 3) Fisher σ 缓存（可复用） ‒‒
     if cov_flat_dict is None:
-        if DEBUG: print("\n[DEBUG] collecting Fisher sigma…")
+        if DEBUG: print("[DEBUG] collecting Fisher sigma…")
         cov_flat_dict = get_cov_flat_dict(pc)
-    elif DEBUG:
-        print("\n[DEBUG] using cached Fisher sigma")
 
-    # 3. Compute patch-level variance to rank patches
-    gray          = rendered_image.mean(0, keepdim=True).unsqueeze(0)  # [1,1,H,W]
-    patch_mean    = F.avg_pool2d(gray, patch_size, patch_size)
-    patch_sqmean  = F.avg_pool2d(gray**2, patch_size, patch_size)
-    patch_var     = (patch_sqmean - patch_mean**2).squeeze()
-    rows, cols    = patch_var.shape
-    patch_flat    = patch_var.flatten()
-    flat_mean     = patch_mean.squeeze().flatten()
-    score         = patch_flat + 0.05 / (flat_mean + 1e-4)
+    # ‒‒ 4) rows/cols 计算 ‒‒
+    rows = (H + patch_size - 1) // patch_size
+    cols = (W + patch_size - 1) // patch_size
 
-    # 4. Process all patches 
-    active_mask = torch.ones_like(patch_flat, dtype=torch.bool)
-    patch_unc = torch.zeros_like(patch_flat)
-    for flat_idx in active_mask.nonzero(as_tuple=True)[0]:
-        i, j = divmod(flat_idx.item(), cols)
-        y0, y1 = i * patch_size, min((i+1)*patch_size, H)
-        x0, x1 = j * patch_size, min((j+1)*patch_size, W)
+    # ‒‒ 5) 收集要计算的 patch 索引 ‒‒
+    if patch_keep is not None:
+        active_idx = patch_keep.flatten().nonzero(as_tuple=True)[0]
+    else:
+        active_idx = torch.arange(rows * cols, device=img.device)
+    if DEBUG:
+        print(f"[DEBUG] keep/total patches = {active_idx.numel()}/{rows*cols}")
 
-        patch_sum = rendered_image[:, y0:y1, x0:x1].sum()
+    # ‒‒ 6) 遍历计算每个 patch 的不确定度 ‒‒
+    patch_unc = torch.zeros(active_idx.numel(), device=img.device)
+    for k, flat_idx in enumerate(active_idx):
+        i, j = divmod(int(flat_idx), cols)
+        y0, y1 = i*patch_size, min((i+1)*patch_size, H)
+        x0, x1 = j*patch_size, min((j+1)*patch_size, W)
+        patch_sum = img[:, y0:y1, x0:x1].sum()
         grads = torch.autograd.grad(
-            patch_sum, [params[n] for n in PARAM_NAMES],
+            patch_sum,
+            [params[n] for n in PARAM_NAMES],
             retain_graph=True, allow_unused=True
         )
-
         u = 0.0
         for g, name in zip(grads, PARAM_NAMES):
             if g is None or name not in cov_flat_dict:
                 continue
-            grad_flat = g.view(g.shape[0], -1)
-            cov_flat  = cov_flat_dict[name]
-            D = min(grad_flat.shape[1], cov_flat.shape[1])
-            if D == 0:
+            g_flat = g.view(g.shape[0], -1)
+            cov_f  = cov_flat_dict[name]
+            D      = min(g_flat.shape[1], cov_f.shape[1])
+            if D == 0: 
                 continue
-            weight = K_COLOR if name in ("f_dc", "f_rest") else 1.0
-            u += weight * ((grad_flat[:,:D]**2) * cov_flat[:,:D]).sum(1).mean()
-        patch_unc[flat_idx] = u
+            weight = K_COLOR if name in ("f_dc","f_rest") else 1.0
+            u += weight * ((g_flat[:,:D]**2) * cov_f[:,:D]).sum(1).mean()
+        patch_unc[k] = u
 
-    # 6. Reconstruct full-resolution uncertainty map & colormap
-    uncertainty_img = torch.zeros((H, W), device=rendered_image.device)
-    k = 0
+    # ‒‒ 7) 回填到全分辨率图上，其它区域保 0 ‒‒
+    unc_img = torch.zeros((H, W), device=img.device)
+    ptr = 0
     for i in range(rows):
         for j in range(cols):
             y0, y1 = i*patch_size, min((i+1)*patch_size, H)
             x0, x1 = j*patch_size, min((j+1)*patch_size, W)
-            uncertainty_img[y0:y1, x0:x1] = patch_unc[k]
-            k += 1
+            if patch_keep is None or patch_keep[i, j]:
+                unc_img[y0:y1, x0:x1] = patch_unc[ptr]
+                ptr += 1
+
+    # ‒‒ 8) 伪彩色映射 & 返回，保留 raw 以便 npz 存储 ‒‒
+    norm = (unc_img - unc_img.min()) / (unc_img.max() - unc_img.min() + 1e-8)
+    unc_rgb = torch.from_numpy(cm.cividis(norm.cpu().numpy())[...,:3]) \
+                    .permute(2,0,1).to(img.device)
+
+    out = {
+        "render"          : img.detach(),
+        "uncertainty"     : unc_rgb,
+    }
+    if return_raw:
+        out["uncertainty_raw"] = unc_img.detach()
+    return out
 
     # # 7. Identify worst patch & optionally worst Gaussian
     # worst_idx = patch_unc.argmax().item()
@@ -554,11 +546,11 @@ def estimate_uncertainty(viewpoint_camera,
     # except RuntimeError:
     #     pass
 
-    norm_u = (uncertainty_img - uncertainty_img.min()) / \
-             (uncertainty_img.max() - uncertainty_img.min() + 1e-8)
-    uncertainty_rgb = torch.from_numpy(
-        cm.cividis(norm_u.cpu().numpy())[...,:3]
-    ).permute(2,0,1).to(rendered_image.device)
+    # norm_u = (uncertainty_img - uncertainty_img.min()) / \
+    #          (uncertainty_img.max() - uncertainty_img.min() + 1e-8)
+    # uncertainty_rgb = torch.from_numpy(
+    #     cm.cividis(norm_u.cpu().numpy())[...,:3]
+    # ).permute(2,0,1).to(rendered_image.device)
 
     # # 8. Highlight worst patch region
     # hi_color = torch.tensor([0.9,0.2,0.6], device=rendered_image.device).view(3,1,1)
@@ -569,17 +561,17 @@ def estimate_uncertainty(viewpoint_camera,
     # if DEBUG:
     #     print(f"Worst patch idx={worst_idx}, uncertainty={patch_unc[worst_idx]:.3e}, coords=({wy0}:{wy1},{wx0}:{wx1})")
 
-    result = {
-        "render"           : rendered_image.detach(),
-        "uncertainty"      : uncertainty_rgb,
-        # "max_patch_idx"    : worst_idx,
-        # "max_patch_coords" : (wy0, wy1, wx0, wx1),
-        # "max_gaussian_idx" : max_gaussian_idx
-    }
-    if return_raw:
-        result["uncertainty_raw"] = uncertainty_img
+    # result = {
+    #     "render"           : rendered_image.detach(),
+    #     "uncertainty"      : uncertainty_rgb,
+    #     # "max_patch_idx"    : worst_idx,
+    #     # "max_patch_coords" : (wy0, wy1, wx0, wx1),
+    #     # "max_gaussian_idx" : max_gaussian_idx
+    # }
+    # if return_raw:
+    #     result["uncertainty_raw"] = uncertainty_img
 
-    return result
+    # return result
 
 
 # =========================================================
