@@ -1,0 +1,304 @@
+Dear 海毅 李,
+
+On behalf of the International Program Committee of the Eurographics Conference 2026, we are pleased to inform you that your submission
+
+-------------
+paper1247
+-------------
+
+was CONDITIONALLY ACCEPTED to Eurographics 2026. This means that you have to prepare a minor revision of your submission which will undergo a second review cycle before final acceptance to Eurographics. If accepted, your manuscript will also be published in the special issue of Computer Graphics Forum containing the conference proceedings. Accepted papers will be presented in person at Eurographics 2026 in Aachen, Germany (https://eg2026.github.io/).
+
+The summary review and the reviews for your submission are attached below, indicating modifications to your paper as suggested by the reviewers. These suggestions should be addressed in the preparation of your revised submission.
+
+Here are important instructions for preparing the revised submission - please follow them closely:
+
+* SRMv2 instructions for uploading the revised version:
+https://wiki.eg.org/SRMv2Wiki/index.php/Upload_your_revised_version,_if_your_paper_is_conditionally_accepted
+And for the final version: https://wiki.eg.org/SRMv2Wiki/index.php/Upload_your_final_version
+
+* Required changes:
+The required changes listed in the summary review must be implemented since otherwise your paper will be rejected in the second review cycle. If you have any questions about the revision, you should use the communication channel to the corresponding senior reviewer by clicking “Reviewer Author Discussion” on the left-hand-side menu on the page for your paper submission. Please restrict this communication to factual questions and not for negotiation. We again emphasize that the decision is conditional at this stage.
+
+* Cover letter:
+You are also required to prepare and upload a cover letter describing how you considered the reviewer comments and how you addressed them in your minor revision. Please be informative in this letter: a well-proven format is to quote the individual requirements in the summary review, and respond to how these were addressed, pointing to the locations in the paper that were changed (or, for smaller changes, just quoting the new text).
+
+* Color-code changes:
+Please color-code the changes that you did to the paper in the revision, when you upload it to SRM via “Upload/Replace Paper”. This will make it easier for the senior reviewer to verify whether the requirements have been met and increase the chances for acceptance.
+
+* Use final, non-anonymized template:
+The version you upload should use the *final template* (see below) and should not be anonymized. The revision phase is only single-blind since the senior reviewer knows your identity.
+
+* Upload early:
+Try to finish your revisions earlier so that you can still incorporate any feedback the senior reviewer has on your revision. If you are in doubt about any of the requirements, ask!
+
+* Notify senior on upload:
+*Important*: When you upload your revision and want it to be checked by the senior reviewer, YOU MUST POST a message to the “Reviewer-Author Discussion” BBS. The senior reviewer is not automatically notified of file uploads to SRM.
+
+* Page count:
+The page count of your final paper must not exceed the page count of your submitted paper, except if agreed by the senior reviewer. Again, contact them as soon as possible if you need to.
+
+* Deadline:
+Please upload your revised submission no later than
+
+                 ***  January 23, 2026, 23:59 GMT ***
+
+to the SRMv2 system.
+
+The final notice of acceptance/rejection is scheduled for:
+
+                 *** February 6, 2026 ***
+
+* Updated Latex Templates:
+The paper needs to be prepared in the Eurographics publications style. For the final version of your paper, use the LaTeX2e template "EGauthorGuidelines-conf-fin.tex" or “EGauthorGuidelines-conf-fin_with_teaser.tex”, available here:
+
+https://srmv2.eg.org/COMFy/Conference/EG_2026/Instruction
+
+These templates are slightly different from the ones used for submission.
+
+* Licenses:
+
+Please choose from the options in your tex file the license you want to select:
+
+\CGFStandardLicense % Standard License, no open access
+\CGFccby            % Open Access, Creative Commons license: credit must be given to the creator.
+\CGFccbync          % Open Access, Creative Commons license: credit must be given to the creator. Only noncommercial uses of the work are permitted.
+\CGFccbyncnd        % Open Access, Creative Commons license: credit must be given to the creator. Only noncommercial uses of the work are permitted. No derivatives or adaptations of the work are permitted.
+ 
+Wiley will contact you prior to publication to obtain the license signed by you. In many cases, your open access fees can be covered by your institution. If you already know who is funding the open access of your article, please add a note in the Acknowledgement Section. For instance authors of German institutions generally receive open access through Projekt Deal. In this case please add the sentence: "Open Access funding enabled and organized by Projekt DEAL."
+
+If you have any questions, do not hesitate to contact us at: chairs-eg2026full@eg.org , or SRM support at: SRMv2@eg.org
+
+Best regards,
+Justus Thies and Belen Masia
+Eurographics 2026 Full Papers Chairs
+
+
+
+====================================================================
+Reviews and summary
+====================================================================
+
+
+
+-------------------- Summary Review --------------------
+
+Congratulations! Reviewers were unanimously positive about this work, which has been conditionally accepted for publication at Eurographics 2026. There was broad consensus that the Eurographics community and the Computer Graphics research community as a whole will benefit from a novel approach to object-focused novel view selection that improves the state of the art.
+
+The authors are expected to dedicate the revision period to produce all the changes promised in the authors' rebuttal; most critically:
+- Adding a clear, thorough, theoretical and experimental study of the difference between this work and other methods based on Expected Information Gain (e.g., FisherRF). The text in the rebuttal is helpful: it should be added to the text and elaborated upon.
+- A more thorough study or clearer argumentation on why the work's "performance gains stem solely from our uncertainty formulation and FIM update strategy, not from access to semantic data", including the new experiments mentioned in rebuttal.
+- Addressing all the clarity issues and misunderstanding raised by reviewers, so that readers will be able to follow the manuscript better.
+
+We congratulate you again for your work, and look forward to seeing the revised version presented at Eurographics.
+
+
+
+-------------------- Review 1 --------------------
+
+Overall Recommendation: 5 (5 - marginal - only just acceptable)
+Evaluation Confidence: 4 (4 - Pretty confident, I know this area well)
+
+Summary: This paper proposes OUGS, a framework for object-centric active view selection in 3D Gaussian Splatting (3DGS).
+The key idea is to model uncertainty directly from the physical parameters of the Gaussians (position, scale, rotation, color), propagate it to pixel space through the rendering Jacobian, and combine it with a semantic probability mask (from SAM-2) to produce an object-aware uncertainty score guiding next-best-view (NBV) selection.
+
+A diagonal Fisher Information Matrix (FIM) approximation, updated online via an exponential moving average of squared gradients, ensures tractability. Experiments on Mip-NeRF 360, Light Field, and Tanks & Temples datasets show that OUGS improves object-level reconstruction quality (PSNR +2 dB over FisherRF) while maintaining competitive global performance.
+
+
+Clarity of Exposition: OK
+
+
+Quality of References: Good
+
+
+Technical Soundness and Validation: Average.
+
+
+Reproducibility: Good
+
+
+Ethics: None
+
+
+Explanation of Recommendation: Clear motivation. The paper identifies an important gap—scene-level uncertainty metrics are biased by background clutter—and proposes an object-centric solution.
+
+Physically interpretable uncertainty. Deriving uncertainty from explicit Gaussian parameters is novel and conceptually elegant, improving interpretability compared to weight-space methods.
+
+Natural integration into the 3DGS pipeline. The method builds on existing differentiable splatting frameworks, making it broadly reusable.
+
+Comprehensive experiments. Evaluations span several datasets, with both quantitative and qualitative comparisons to leading NBV methods (ActiveNeRF, Bayes’ Rays, FisherRF, GauSS-MI).
+
+Clear visualizations. Figures 4–6 effectively show convergence curves and correlation between uncertainty maps and reconstruction errors.
+
+3. Weaknesses and Detailed Critique
+3.1 Limited conceptual novelty
+
+The paper’s core contribution—combining parameter-level FIM uncertainty with a segmentation mask—is a straightforward hybrid of existing components. FisherRF [ JLD24 ] already propagates Fisher information in 3DGS, and SAM-2 masking is a known strategy. While the integration is neat, it feels evolutionary rather than revolutionary.
+The authors should clarify how the mathematical formulation differs fundamentally from simply weighting FisherRF scores by a semantic mask. Can the latter be combined with a mask to work?
+
+3.2 Evaluation ambiguity
+
+Runtime, memory footprint, and scalability with the number of Gaussians are not quantified. No evaluation on multi-object scenes.
+
+3.4 Dependency on external segmentation
+
+The pipeline critically depends on accurate SAM-2 masks. Mask noise or segmentation drift could severely degrade performance, as partially shown in Fig. 7, but no experiments on real imperfect masks or weakly-supervised setups are provided. There should be more examples of object level recontruction and the visualization of the associated soft masks used for construction.
+
+3.5 Presentation issues
+
+
+Figures 3–5 are dense and could benefit from simpler captions emphasizing what uncertainty visualization reveals beyond prior work. How are these figures related to object-level reconstruction?
+
+
+3.6 Insufficient comparison to recent work
+
+Recent papers like POp-GS [ WAM et al. 2025 ] and Uncertainty-Aware Normal-Guided GS [ TCZ et al. 2025 ] are mentioned but not compared experimentally. Given their conceptual proximity, excluding them weakens claims of state-of-the-art performance.
+
+
+
+-------------------- Review 2 --------------------
+
+Overall Recommendation: 7 (7 - good)
+Evaluation Confidence: 4 (4 - Pretty confident, I know this area well)
+
+Summary: This manuscript proposes a method to quantify the uncertainty in a 3D Gaussian splat reconstruction and use it to guide next best view selection. It does so by modeling every parameter in every Gaussian as a normal distribution and measuring the effect of each parameter's covariance in each pixel color through a second-degree Taylor expansion.
+
+
+Clarity of Exposition: The exposition is very clear. The method is well explained, and the state of the art is well described. The point about implicit methods not being able to produce geometrically meaningful covariances is perhaps repeated a bit too much, especially given it seems at best arguable: a neural network's weights and their distributions result in a distribution over pixel values much in the same way as this work, and one could use those to guide novel-view synthesis in the same way (the benefit here is that 3DGS does not rely on a  network representation, thus removing this need, but that seems more a benefit of 3DGS than of this work).
+
+There seems to be an editing error on (line numbers are missing, likely due to wrong LaTeX template) the bottom left of page 6.
+
+The introduction mentions a "growing number of applications where the primary goal is [...] to capture a specific object of interest". It would be great to add examples of these applications here!
+
+
+Quality of References: References are adequate and well discussed. The description of POp-GS (which was on arXiv on March 25th, six months before the EG deadline) as "concurrent work" is a stretch, but the authors are correct that no official implementation was available for it (indeed, I am unable to find an official implementation even today), so they should not be penalized for not comparing to it.
+
+
+Technical Soundness and Validation: Overall, the method is technically correct, although a lot of the statistical formalism seems superfluous: I could be wrong, but it seems to me like once all the approximations are factored in, this entire algorithm amounts to a sensitivity analysis on the loss and pixel values with respect to each of the 3DGS' parameters masked by an externally produced semantic mask. That being said, simplicity is a feature, not a bug: the method seems to work and improve the state of the art for this very important task, so this is not a complaint.
+
+I was, however, left quite confused about the theoretical or philosophical meaning behind the uncertainty being computed. In a multi-view reconstruction setting, there are generally two sources of uncertainty: one related to missing data (epistemic, i.e., regions of an object that have not been imaged yet), and another related to contradicting data (aleatoric, i.e., regions of an object that have been imaged with contradicting information due to calibration or pixel errors).
+
+From my own experience on uncertainty quantification on multi-view reconstruction, it seems to me like any measure of uncertainty that depends on the Gaussians' parameters will not be able to estimate epistemic uncertainty: in regions that have not been imaged, no Gaussians are generated, so the algorithm would return full certainty. However, this seems to me like the most important type of uncertainty one needs to quantify in a next-view-planning setting like the one motivating this paper. The method clearly works quantitatively; therefore, what am I missing?
+
+I would have appreciated a discussion of this, and even more so some toy 2D examples of the produced uncertainty quantities to understand the effect of the different sources. Is it possible that this method shines most when most of the object has been imaged at least once, and one is looking to refine the reconstruction only? (i.e., when one is in the "exploitation" regime of the "exploration/exploitation" process).
+
+I was also surprised by the use of a(n external?) semantic mask for the object. How is this computed, exactly? Further, how is this mask estimated for novel views that have not been seen yet? After introduction and related work sections motivating the importance of object-centric novel view planning, it felt somewhat disingenuous to offload object segmentation in this way.
+
+
+Reproducibility: I am convinced the work is fully reproducible.
+
+
+Ethics: N/A
+
+
+Explanation of Recommendation: This is a very well written paper proposing a novel method for an important tasks that improves or matches the state of the art. I congratulate and thank the authors for their submission. I look forward to reading their response (especially to the "Technical Soundness" section above) and other reviewers' opinions, and there is definitely a chance I have missed something, but I see no reason to reject this work.
+
+
+-------------------- Review 3 --------------------
+
+Overall Recommendation: 6 (6 - acceptable)
+Evaluation Confidence: 4 (4 - Pretty confident, I know this area well)
+
+Summary: This paper introduces OUGS, a novel framework for object-centric active view selection in 3D Gaussian Splatting (3DGS). Unlike prior scene-level uncertainty methods, OUGS explicitly models uncertainty from the physical parameters of 3D Gaussians (position, scale, rotation, color) and integrates semantic segmentation masks to disentangle object and background uncertainty. The uncertainty is propagated via a Jacobian formulation and approximated efficiently using a diagonal Fisher Information Matrix (FIM) with an EMA update. Experiments on Mip-NeRF360, Tanks & Temples, and Light Field (LF) datasets show consistent improvements in object-level reconstruction quality and convergence speed over baselines such as FisherRF, GauSS-MI, and ActiveNeRF.
+
+
+Clarity of Exposition: 1. Efficiency and scalability: Can the authors report training and view-selection runtimes relative to GauSS-MI? How does the EMA-based FIM update scale with large numbers of Gaussians (>1M)?
+2. Mask quality and robustness: How sensitive is OUGS to segmentation errors in more cluttered, real-world scenes where SAM2 may fail? Could weakly-supervised or self-supervised masking be integrated?
+3. Extensibility: Could the framework be generalized to multi-object scenarios by aggregating or weighting multiple uncertainty maps? How might the diagonal FIM assumption be relaxed, e.g., via block-diagonal or low-rank updates?
+
+
+Quality of References: GooGood
+
+
+Technical Soundness and Validation: Good.
+
+
+Reproducibility: Good.
+
+
+Ethics:
+
+
+Explanation of Recommendation: Strengths
+1. Clear motivation and contribution: The paper identifies a well-defined gap—the lack of object-aware uncertainty modeling in active 3DGS reconstruction—and directly addresses it.
+2. Methodological rigor: The uncertainty derivation from explicit Gaussian parameters and propagation via the rendering Jacobian is mathematically sound and interpretable.
+3. Comprehensive experiments: Multiple datasets and strong baselines (ActiveNeRF, FisherRF, GauSS-MI) are evaluated under both scene-level and object-level metrics.
+4. Strong qualitative analysis: Figures 4–6 effectively illustrate convergence advantages, uncertainty localization, and visual fidelity improvements.
+5. Ablation and analysis: The paper provides detailed studies on mask quality, EMA schedule, and FIM diagonal approximation, demonstrating careful validation of design choices.
+
+Weaknesses
+1. Marginal global performance gain: While object-level results are strong, scene-level (panoramic) performance shows limited improvement and occasionally falls behind GauSS-MI, suggesting a trade-off between object precision and overall coverage.
+2. Dependence on semantic masks: The method assumes access to reliable SAM2 segmentation masks, which limits applicability in unsegmented or real-time capture scenarios.
+
+Simplified FIM approximation: The diagonal assumption ignores inter-parameter correlations within Gaussians, potentially oversimplifying uncertainty interactions in complex scenes.
+3. Computational overhead not fully quantified: Although the method is said to be efficient, runtime analysis and resource comparisons against FisherRF or GauSS-MI are missing.
+4. Limited discussion of generalization: The method is tuned for single-object settings; the extension to multi-object or dynamic environments remains unexplored.
+
+Overall, this paper presents a technically solid and well-motivated contribution to object-centric uncertainty modeling in 3DGS. The methodology is rigorous and the experiments are comprehensive, clearly validating the proposed framework. However, the dependence on segmentation masks, limited scalability discussion, and marginal scene-level gains weaken its general applicability. The paper would benefit from additional efficiency analysis and exploration of multi-object or unsupervised extensions.
+
+
+-------------------- Review 4 --------------------
+
+Overall Recommendation: 5 (5 - marginal - only just acceptable)
+Evaluation Confidence: 4 (4 - Pretty confident, I know this area well)
+
+Summary: This work leverages the explicit nature of 3D Gaussian Splatting (3DGS) by introducing variance for each parameter to represent uncertainty. This uncertainty is then computed and updated utilizing the discrepancy between the rendered and ground-truth colors. This approach provides a novel framework for active reconstruction and object-centric reconstruction methodologies.
+
+
+Clarity of Exposition: The exposition lacks clarity, as the methodology section does not effectively align with reader comprehension logic, creating significant potential for misinterpretation. I am uncertain whether my understanding is accurate – specifically, whether the Jacobian matrices for each Gaussian parameter are computed via the render loss to update the parameter covariance matrix. To enhance clarity, the authors should explicitly illustrate the figure 2 for updating this covariance matrix.
+
+
+Quality of References: This technically justified method is validated by substantial experiments and ablations. It also honestly discusses its limitations at the end.
+
+
+Technical Soundness and Validation: Yes.
+
+
+Reproducibility: Yes.
+
+
+Ethics: no.
+
+
+Explanation of Recommendation: There seems to be a symbol discrepancy in Figure 3 where the notations may not fully align with those of the Gaussian parameters. Additionally, in the experimental section, the textual descriptions and their corresponding figures are placed far apart, making it cumbersome to read and cross-reference. Figure 2 does not illustrate the process of updating the parameter covariance matrix, which lacks clarity. How significant is the impact of using semantic segmentation masks on the experimental results? In Table 1, were the probability masks also used in the Panoramic evaluation part? What would the results be if probability masks were completely omitted? Would the reconstruction accuracy of the object decrease? If semantic segmentation masks are used, is only one object selected at a time? How would the method handle scenarios with multiple central objects?
+
+
+-------------------- Review 5 --------------------
+
+Overall Recommendation: 6 (6 - acceptable)
+Evaluation Confidence: 1 (1 - Very unconfident, really just a guess)
+
+Summary: This paper describes a new way to compute uncertainty in 3D Gaussian splatting models. The approach consists in defining uncertainty as covariance matrices at the level of individual Gaussian's parameters, which can be then propagated to pixel-space during rendering. Coupled with a pixel-space mask, it exhibits state of the art results in the Next-Best-View selection task when dealing with single object reconstruction, while remaining competitive in the general case.
+
+
+Clarity of Exposition: Some details about mathematical notations were left out in the Appendix, which makes some equations of Section 3 hard to follow. Especially:
+
+- l_t in Eq.8 is only defined in Appendix B.
+- the value of lambda in Eq. 9 and its purpose (preventing a singular matrix) is only explicited in Appendix
+
+I believe that either the text should be updated, or clear references to the relevant appendices should be added.
+
+Below are some small corrections regarding the text. Please note for future submissions that you can use the \ConferenceSubmission and not the \ConferencePaper option in the latex template to make the line numbers appear, which makes pointing out typos and small errors more efficient.
+
+page 2: "PUP 3D-GS": a citation may be needed
+
+page 6: a citation may be needed for the LPIPS score. Also, the acronyms for PSNR and SSIM should be made explicit at least once.
+
+page 6: "we feed identical For fairness"
+
+page 9: the very last sentence of the conclusion seems incorrectly cropped.
+
+
+
+Quality of References: References are correctly discussed. However, I count 19 out of the 29 references which are just a link to an arxiv preprint. Please update the references to include where and when they were peer-reviewed and published.
+
+
+Technical Soundness and Validation: The method presented here seem technically sounds. The results are supported by an extensive analysis and comparison with previous methods, as well as qualitative results that show the graphical interpretability of the uncertainty analysis.
+
+
+Reproducibility: I see no problem regarding reproducibility of the results, given the information present in the paper and its appendix.
+
+
+Ethics: .
+
+
+Explanation of Recommendation: This paper and the method proposed are at the edge of my area of expertise, though I see how such an uncertainty measure could help improving the quality and convergence speed of 3DGS methods. Since the work presented here seems to have been done rigorously, both on its theoretical derivation and practical evaluation, I therefore lean towards acceptation.

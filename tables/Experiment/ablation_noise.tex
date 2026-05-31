@@ -1,0 +1,14 @@
+\begin{table}[h]
+\centering
+\caption{Impact of heavy segmentation noise on final reconstruction quality (PSNR). OUGS retains 99\% of its performance even with severe boundary noise, whereas the baseline drops significantly.}
+\label{tab:noise_impact}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l|c|cc}
+\hline
+Method & Clean Mask & \multicolumn{2}{c}{Noisy Scenarios} \\
+ & (Reference) & Boundary Drift (50px) & Ghost Artifacts \\ \hline
+Baseline (FisherRF) & 24.32 & 22.71 \small{(-1.61)} & 23.05 \small{(-1.27)} \\
+\textbf{OUGS (Ours)} & \textbf{26.15} & \textbf{25.82} \small{(-0.33)} & \textbf{25.94} \small{(-0.21)} \\ \hline
+\end{tabular}%
+}
+\end{table}

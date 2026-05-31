@@ -1,0 +1,58 @@
+\definecolor{best}{rgb}{1, 0.7, 0.7}
+\definecolor{second}{rgb}{1, 0.85, 0.7}
+\definecolor{third}{rgb}{1, 1, 0.7}
+
+\begin{table*}[t]
+  \centering
+
+\rev{\caption{\textbf{Quantitative comparison across four scenes of the LF dataset.} We compare our Warp-based mask generation against ground-truth SAM2 masks (GT). Metrics are evaluated on object regions after training with \textbf{20 views} for \textbf{30k iterations}.} \label{tab:mask_comparison}}
+  \scalebox{1}{
+  \small
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{l|ccc|ccc|ccc|ccc}
+    \toprule
+    \multicolumn{1}{c|}{} &
+    \multicolumn{3}{c|}{\textbf{africa}} &
+    \multicolumn{3}{c|}{\textbf{basket}} &
+    \multicolumn{3}{c|}{\textbf{statue}} &
+    \multicolumn{3}{c}{\textbf{torch}} \\
+    \cmidrule[0.5pt](rl){2-4} \cmidrule[0.5pt](rl){5-7}
+    \cmidrule[0.5pt](rl){8-10} \cmidrule[0.5pt](rl){11-13}
+    & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$
+    & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$
+    & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$
+    & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$ \\
+    \midrule
+
+
+    \textbf{Offline FisherRF} &
+    \cellcolor{second}32.45 & \cellcolor{second}0.991 & \cellcolor{second}0.011 &
+    \cellcolor{second}29.35 & \cellcolor{second}0.973 & \cellcolor{second}0.038 &
+    \cellcolor{second}31.85 & \cellcolor{second}0.983 & \cellcolor{third}0.024 &
+    \cellcolor{second}29.66 & \cellcolor{second}0.978 & \cellcolor{second}0.020 \\
+
+    \textbf{Online FisherRF} &
+    24.80 & 0.975 & 0.018 &
+    24.95 & 0.958 & 0.048 &
+    27.60 & 0.972 & 0.032 &
+    22.60 & 0.958 & 0.029 \\
+    
+
+
+    \textbf{Offline OUGS} &
+    \cellcolor{best}33.82 & \cellcolor{best}0.996 & \cellcolor{best}0.010 &
+    \cellcolor{best}30.65 & \cellcolor{best}0.982 & \cellcolor{best}0.036 &
+    \cellcolor{best}33.25 & \cellcolor{best}0.989 & \cellcolor{best}0.022 &
+    \cellcolor{best}31.02 & \cellcolor{best}0.988 & \cellcolor{best}0.019 \\
+    
+
+    \textbf{Online OUGS} &
+    \cellcolor{third}27.94 & \cellcolor{third}0.988 & \cellcolor{third}0.014 &
+    \cellcolor{third}27.35 & \cellcolor{third}0.968 & \cellcolor{third}0.041 &
+    \cellcolor{third}30.02 & \cellcolor{third}0.981 & \cellcolor{second}0.023 &
+    \cellcolor{third}25.63 & \cellcolor{third}0.969 & \cellcolor{third}0.025 \\
+    \bottomrule
+  \end{tabular}
+  }
+  \vspace{-3mm}
+\end{table*}

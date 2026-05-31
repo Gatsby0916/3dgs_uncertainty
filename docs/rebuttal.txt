@@ -1,0 +1,33 @@
+Rebuttal for Submission 1247: OUGS
+We express our sincere gratitude to the reviewers for their time and the comprehensive, constructive feedback. We are highly encouraged by the positive reception, with reviewers validating our method’s "physically interpretable uncertainty" (R6550), "methodological rigour" (R7774), and "simplicity as a feature" (R2876). We also deeply value the critical questions regarding conceptual novelty and deployment robustness, which have guided us to clarify our theoretical positioning and conduct additional ablations to strengthen the manuscript. Below, we address these shared concerns comprehensively, followed by specific responses to individual reviewers.
+ID Mapping: R0993 - R1, R2876 - R2, R4261 - R3, R6550 - R4, R7774 - R5.
+== CONCEPTUAL NOVELTY (TO ALL REVIEWERS) ==
+Q: Is OUGS just "FisherRF + Mask"? 
+While it is true that removing the object-aware mask from OUGS leads to a global uncertainty metric that is mathematically related to the Expected Information Gain used in FisherRF, the optimisation algorithms and uncertainty update mechanisms differ significantly:
+Pixel-Space Projection: OUGS is explicitly designed to project parameter-level uncertainty into pixel-wise visual uncertainty via the Jacobian (Eq. 4). In contrast, FisherRF maximises information gain in parameter space. This design allows OUGS to integrate the 2D semantic mask for object-aware selection.
+
+
+FIM Update Strategy: OUGS utilises an Exponential Moving Average of the accumulated gradient (Eq. 6). This temporally smoothes the uncertainty estimates and mitigates noise from stochastic gradients, especially early in training. In contrast, FisherRF computes the Fisher Information Matrix based on a static snapshot at the time of selection without historical accumulation.
+Please see Table 2 for further comparison with FisherRF (with/without masks).
+(R4) Both POP-GS and UNG-GS are excellent concurrent works. However, they do not consider object-aware uncertainty and have not yet released their code publicly, and  POp-GS [ WAM et al. 2025 ]  did not provide their code. We still can’t find it anywhere. Therefore, we could not modify and build upon their codebase to perform a fair comparison using the scenes proposed in our work.
+== MASK GENERATION (TO ALL REVIEWERS) ==
+Fairness & Mask Generation: Masks are computed using SAM-2. To ensure fairness, we provide the identical probability masks to all baselines during training and evaluation. This guarantees that our performance gains stem solely from our uncertainty formulation and FIM update strategy, not from access to semantic data.
+Robustness & New Experiments: Figure 7 demonstrates stability across a broad range of mask thresholds (0.3–0.8), confirming resilience to general segmentation variance. To further quantify robustness against severe “segmentation drift” (R6550) and “clutter scenes” (R7774), we will introduce synthetic noise (random patch drops, false positives) in the final camera-ready version. We are confident in graceful degradation because the quadratic weighting $(M_k(u))^2$ in Eq. 5  mathematically attenuates the influence of noisy mask regions on the covariance propagation. We will plot this breakdown point in the final revision.
+ == EFFICIENCY OF JACOBIAN PROPAGATION (TO ALL REVIEWERS) ==
+While training is efficient (O(N)), we acknowledge the cost of explicit Jacobian propagation (Eq. 9) during the planning phase. To mitigate this, we employ a patch-based computation strategy, evaluating uncertainty on strided patches rather than dense pixels. This drastically reduces the dimensionality of $J_u$​, accelerating planning while retaining sufficient spatial resolution for view selection. 
+We acknowledge that shifting to a Block-Diagonal FIM approximation is a promising direction to capture local correlations (e.g., Position-Rotation) while maintaining sparse memory access (R4261). (Response to R7774: Memory scales linearly with $N$, successfully validated on TNT-Truck with >1M Gaussians.)
+== RESPONSES TO INDIVIDUAL REVIEWER ==  
+To R0993 / R1: 
+We wish to clarify a misunderstanding regarding the computational flow: 
+1) training: We do not use the explicit Jacobian to update covariance during training. We use an efficient ($O(N)$) EMA of squared gradients (Eq. 14). 
+2) planning: the explicit Jacobian is computed only during the view selection phase for propagation (Eq. 15). We will clarify this distinction in the revision.Clarification on Table 1: The "Panoramic" metrics are evaluated on the full image without any masking to assess global quality, while the view selection policy was guided by OUGS using masks.
+We will unify the notations in Figure 3 as requested. 
+To R2876 / R2:
+You are correct that our parameter-based method operates primarily in the "exploitation" regime (refining object geometry) rather than pure exploration. This aligns with our experimental design, where scenes are initialized with a sparse set of views, establishing coarse structure that requires fidelity refinement. We will explicitly clarify this object-centric scope in the final manuscript.
+During benchmarking, we utilise pre-computed masks to isolate and validate the predictive variance metric (Eq. 7). In a real-world deployment, the dependency can be resolved by semantic propagation, i.e. semantic attributes learned from initial views are propagatedinto candidate poses to predict masks. As shown in Figure 7, OUGS is robust to the potential resulting segmentation variance. We will put this into the discussion section.
+To R4261 / R3:
+We gratefully accept all corrections. We will move the definitions of $l_t$ and $\lambda$ to the main text, update arXiv references to their proceedings versions, and correct the formatting issues on pages 2, 6, and 9.
+To R6550 / R4:
+Please see above regarding the novelty of OUGS. We will simplify the captions for Figures 3-5  and add explicit overlays of masks and uncertainty maps to better visualise their correlation with reconstruction error.
+To R7774 / R5:
+Multi-Object Extensibility: As requested, we clarify that the framework extends to multiple objects by computing weighted sums of per-object uncertainty scores: $\text{Score}(v) = \sum w_k \cdot \text{Trace}(\Sigma_{C,k}(v))$. Weights can be static (user priority) or dynamic (uncertainty-balanced). We will include the specific runtime breakdown (Training vs. Planning) as detailed in the general response 3 above, highlighting that our patch-based Jacobian computation keeps planning tractable. The marginal scene-level gain is an intentional trade-off to reallocate the view budget towards maximising object fidelity.
