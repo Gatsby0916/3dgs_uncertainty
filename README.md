@@ -68,13 +68,7 @@
 <img src="assets/method.png" width="92%" alt="OUGS method overview"/>
 </div>
 
-The diagonal parameter covariance is propagated through the rendering Jacobian $J_u$ into a per-pixel colour covariance, and modulated by the (squared) foreground probability $M_k(u)$:
-
-$$
-\Sigma_{C,k}(u) \;=\; M_k(u)^2 \cdot J_u \, \bigl(\mathrm{diag}(I_t) + \lambda I\bigr)^{-1} \, J_u^{\top}
-$$
-
-Aggregating this variance over the object mask scores each candidate view; the highest-scoring unobserved view is added to the training set.
+OUGS turns each Gaussian's per-parameter covariance into a per-pixel colour uncertainty through the differentiable renderer, then **gates it by the object's foreground mask** so background variance can no longer dominate the score. Aggregating the masked variance over candidate views drives next-best-view selection toward the object of interest. Full derivation in the [paper](https://doi.org/10.1111/cgf.70363).
 
 <br/>
 
