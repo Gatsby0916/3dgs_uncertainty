@@ -45,7 +45,7 @@ images/
 /docs/rebuttal.txt
 /docs/review.txt
 /docs/COVER_LETTER_FINAL_CHECKLIST.md
-paper_figures/*.svg
+/paper_figures/
 
 # Local agent / editor caches
 /.claude/
