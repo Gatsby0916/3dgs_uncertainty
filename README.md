@@ -44,10 +44,10 @@
 <div align="center">
 
 <a href="https://github.com/Gatsby0916/3dgs_uncertainty/raw/main/assets/ougs_fast_forward.mp4">
-  <img src="assets/teaser.png" width="70%" alt="Click to play fast-forward video"/>
+  <img src="assets/video_poster.jpg" width="70%" alt="Click to play fast-forward video"/>
 </a>
 
-<sub>▶️ Click the image to play the 40-second EG2026 fast-forward video</sub>
+<sub>▶️ Click to play the 40-second EG2026 fast-forward video &nbsp;·&nbsp; <a href="assets/ougs_fast_forward.mp4">download MP4</a></sub>
 
 </div>
 
@@ -152,11 +152,27 @@ Object-masked PSNR / SSIM / LPIPS plus the AUSE uncertainty-calibration metric a
 
 ## 📊 Results
 
+### Active view selection — qualitative comparisons
+
 <div align="center">
-<img src="assets/results.png" width="92%" alt="Active view selection results"/>
+<img src="assets/qualitative.png" width="96%" alt="Qualitative comparisons across Mip-NeRF 360, Light-Field and Tanks-and-Temples"/>
+<br/>
+<sub>Cross-method qualitative grid on Mip-NeRF 360, Light-Field, and Tanks-and-Temples scenes. OUGS recovers crisper object geometry and texture than Random / FisherRF baselines under the same view budget.</sub>
 </div>
 
-OUGS substantially outperforms ActiveNeRF, FisherRF, Bayes' Rays and GauSS-MI at object-level reconstruction across Mip-NeRF 360, Light-Field, and Tanks-and-Temples. Full quantitative tables and per-scene breakdowns are in the [paper](https://doi.org/10.1111/cgf.70363).
+<br/>
+
+### Object-aware view scoring
+
+<div align="center">
+<img src="assets/results.png" width="92%" alt="Active view selection results"/>
+<br/>
+<sub>OUGS's object-aware uncertainty (right) concentrates on the target, while scene-level baselines (left) waste budget on background clutter — leading to the qualitative gains above.</sub>
+</div>
+
+<br/>
+
+OUGS substantially outperforms ActiveNeRF, FisherRF, Bayes' Rays and GauSS-MI at **object-level** reconstruction across Mip-NeRF 360, Light-Field, and Tanks-and-Temples. Full quantitative tables and per-scene breakdowns are in the [paper](https://doi.org/10.1111/cgf.70363).
 
 <br/>
 
