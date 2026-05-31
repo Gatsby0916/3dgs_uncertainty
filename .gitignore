@@ -39,6 +39,13 @@ images/
 /fast_forward_video/
 /template_unpacked/
 /work_unpacked/
+/Images/
+/tables/
+/docs/report.tex
+/docs/rebuttal.txt
+/docs/review.txt
+/docs/COVER_LETTER_FINAL_CHECKLIST.md
+paper_figures/*.svg
 
 # Local agent / editor caches
 /.claude/
