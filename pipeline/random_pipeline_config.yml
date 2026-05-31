@@ -1,0 +1,39 @@
+# random_pipeline_config.yml - 随机视图选择的pipeline配置
+
+# —— FisherRF 对齐参数 ——
+sh_up_every: 5000           # 球谐函数更新间隔
+sh_up_after: 1000           # 开始更新球谐函数的迭代数  
+min_opacity: 0.005          # 最小不透明度阈值
+
+# —— 初始视图数 ——
+init_pick: 4            # 视图 0 + 3 张 FPS
+
+# —— 训练参数 ——
+train:
+  total_iterations: 2000      # 总训练步数
+  checkpoint_iterations: 2000
+
+# —— 随机视图添加schedule（对应NBV的触发点） ——
+random_schedule:
+  - { iter:   400,  add: 1 }
+
+
+
+
+# —— 训练超参（完全对齐 FisherRF） ——
+opt_params:
+  densify_from_iter: 200
+  densify_until_iter: 2000
+  densification_interval: 100
+  opacity_reset_interval: 300
+  lambda_dssim: 0.2
+  depth_l1_weight_init: 0.2
+  depth_l1_weight_final: 0.001
+
+# —— 数据集列表（多数据集支持） ——
+datasets:
+  - "data/garden"
+  - "data/room"
+  - "data/stump"
+  # 可以添加更多数据集路径，例如：
+  # - "data/counter"

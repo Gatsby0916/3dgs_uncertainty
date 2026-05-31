@@ -1,0 +1,55 @@
+# pipeline_config.yml - 简化的pipeline配置模板
+
+# —— FisherRF 对齐参数 ——
+sh_up_every: 5000           # 球谐函数更新间隔
+sh_up_after: 1000           # 开始更新球谐函数的迭代数  
+min_opacity: 0.005          # 最小不透明度阈值
+
+# —— 初始视图数 ——
+init_pick: 4            # 视图 0 + 3 张 FPS
+
+# —— 训练参数 ——
+train:
+  total_iterations: 30000      # FisherRF 用 3 万步
+  checkpoint_iterations: 30000
+
+# —— 不确定性计算模式 (patch_size=4) ——
+uncert_mode:
+  patch_size: 8              # 设置为4
+  thr: 0.3
+  mode: "mean"
+
+# —— NBV 触发点（100 epoch 规则 → 累积迭代） ——
+nbv_schedule:
+  - { iter:   400,  add: 1 }
+  - { iter:   900,  add: 1 }
+  - { iter:  1500,  add: 1 }
+  - { iter:  2200,  add: 1 }
+  - { iter:  3000,  add: 1 }
+  - { iter:  3900,  add: 1 }
+  - { iter:  4900,  add: 1 }
+  - { iter:  6000,  add: 1 }
+  - { iter:  7200,  add: 1 }
+  - { iter:  8500,  add: 1 }
+  - { iter:  9900,  add: 1 }
+  - { iter: 11400,  add: 1 }
+  - { iter: 13000,  add: 1 }
+  - { iter: 14700,  add: 1 }
+  - { iter: 16500,  add: 1 }
+  - { iter: 18400,  add: 1 }   # 第 20 张视图到位
+
+
+# —— 训练超参（完全对齐 FisherRF） ——
+opt_params:
+  densify_from_iter: 200
+  densify_until_iter: 1000    # 测试用较小值
+  densification_interval: 100
+  opacity_reset_interval: 300
+  lambda_dssim: 0.2
+  depth_l1_weight_init: 0.2
+  depth_l1_weight_final: 0.001
+
+# —— 数据集列表（多数据集支持） ——
+datasets:
+  - "LF/basket"
+
