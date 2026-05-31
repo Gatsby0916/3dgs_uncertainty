@@ -1,13 +1,61 @@
+# Python
+__pycache__/
 *.pyc
-.vscode
-build
+*.egg-info/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# Build artefacts
+build/
 diff_rasterization/diff_rast.egg-info
 diff_rasterization/dist
 tensorboard_3d
 screenshots
-/output/
-3dgs_tool/
-data/
-images/
+
+# Logs / transient outputs
+*.log
+pipeline_log.txt
 result.txt
 reconstruction_eval.txt
+
+# 3DGS defaults
+/output/
+3dgs_tool/
+
+# Datasets (user-local, not tracked)
+/data/
+/dataset/
+/LF/
+/tandt/
+/OUGS/Images/
+images/
+
+# Paper / presentation artefacts (kept out of code repo)
+/OUGS/
+/OUGS_EG2026.pptx
+/fast_forward_video/
+/template_unpacked/
+/work_unpacked/
+
+# Local agent / editor caches
+/.claude/
+
+# Result outputs (regenerable, large)
+/random_results/
+/ablation_results/
+
+# Per-scene training / test outputs
+**/output/
+**/random_output/
+**/masked_results_*/
+
+# Generated evaluation artefacts
+/metrics.csv
+/final_masked_evaluation.json
+/final_masked_metrics_results.json
+/final_evaluation_40k_*/
+/results/*/results.json
+/results/*/per_view.json
