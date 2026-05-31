@@ -25,12 +25,30 @@ except Exception:
 
 
 # ---------- helper ----------
-def stem_of(view, idx: int) -> str:
-    """优先取 view.image_name / image_path stem；否则 idx 5 位数字"""
+
+def stem_of(view, idx: int, images_dir=None) -> str:
+    """
+    严格使用 images 目录下的原始文件名（含大小写）作为输出名。
+    若找不到则 fallback 到 view.image_name，再到 idx。
+    """
+    # 1. 尝试用 view.image_name 匹配 images 目录下的原始文件名
+    if images_dir is not None:
+        # 获取所有 images 目录下的文件名（不含扩展名）
+        images_dir = Path(images_dir)
+        all_files = list(images_dir.glob('*'))
+        # 获取当前view的stem（不区分大小写）
+        name = getattr(view, "image_name", None)
+        if name is None and hasattr(view, "image_path"):
+            name = Path(view.image_path).name
+        stem_lower = Path(name).stem.lower() if name else None
+        for f in all_files:
+            if f.stem.lower() == stem_lower:
+                return f.stem  # 返回原始大小写
+    # 2. fallback
     name = getattr(view, "image_name", None)
     if name is None and hasattr(view, "image_path"):
         name = Path(view.image_path).name
-    return (Path(name).stem if name else f"{idx:05d}").lower()
+    return Path(name).stem if name else f"{idx:05d}"
 
 
 # ---------- main render set ----------
@@ -58,13 +76,22 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline,
     for d in (render_dir, gt_dir, uncertainty_dir, uncertainty_npz_dir, depth_dir):
         os.makedirs(d, exist_ok=True)
 
+
+    # 获取 images 目录路径
+    # 默认假设 images 目录与 model_path 同级，或在 model_path/../images
+    images_dir = None
+    for candidate in [os.path.join(model_path, "images"), os.path.join(os.path.dirname(model_path), "images")]:
+        if os.path.isdir(candidate):
+            images_dir = candidate
+            break
+
     for idx, view in enumerate(tqdm(views, desc=f"{name}-views")):
         if view_ids is not None and idx not in view_ids:
             continue
         if max_views and idx >= max_views:
             break
 
-        stem = stem_of(view, idx)
+        stem = stem_of(view, idx, images_dir)
 
         # Load Mask if Mask Directory is Provided
         mask_prob = None  # Initialize mask_prob as None before loading

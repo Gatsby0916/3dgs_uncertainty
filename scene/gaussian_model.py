@@ -245,7 +245,7 @@ class GaussianModel:
             cov = getattr(self, attr)
             if cov.numel() == 0:
                 continue
-            diag = cov if cov.dim() == 2 else cov.diagonal(-2, -1)
+            diag = cov if cov.dim() == 2 else cov.diagonal(0, -2, -1)
             diag.clamp_(min=min_floor)
 
     # ============================================================
@@ -330,7 +330,7 @@ class GaussianModel:
                 eye = torch.eye(D, device=var.device).unsqueeze(0)
                 setattr(self, cov_name, var.unsqueeze(-1) * eye)
         if cur_iter in (5000, 7000, 10000, 15000):
-            sig_xyz = self._xyz_cov.diagonal(-2,-1).mean().item()
+            sig_xyz = self._xyz_cov.diagonal(0,-2,-1).mean().item()
             sig_color = self._features_rest_cov.mean().item()
             print(f"[{cur_iter}] σ_xyz={sig_xyz:.2e}, σ_color={sig_color:.2e}")
 

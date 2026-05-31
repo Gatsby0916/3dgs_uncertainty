@@ -108,7 +108,8 @@ class Scene:
             )
             if os.path.isfile(state_path):
                 logging.info(f"✔  Found binary checkpoint: {state_path}")
-                ckpt_tuple = torch.load(state_path, map_location="cuda")
+                ckpt_tuple = torch.load(state_path, map_location="cuda", weights_only=False)
+
 
                 dummy_opt = types.SimpleNamespace(
                     optimizer_type="default",

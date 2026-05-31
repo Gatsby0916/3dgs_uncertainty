@@ -153,6 +153,16 @@ def read_points3D_binary(path_to_model_file):
             errors[p_id] = error
     return xyzs, rgbs, errors
 
+def read_points3d_binary(path):
+    """
+    兼容 COLMAP points3D.bin，返回 {point3D_id: Point3D(...)}
+    """
+    xyzs, rgbs, errors = read_points3D_binary(path)
+    points3d = {}
+    for idx, (xyz, rgb, error) in enumerate(zip(xyzs, rgbs, errors)):
+        points3d[idx] = type("Point3D", (), {"xyz": xyz, "rgb": rgb, "error": error})
+    return points3d
+
 def read_intrinsics_text(path):
     """
     Taken from https://github.com/colmap/colmap/blob/dev/scripts/python/read_write_model.py

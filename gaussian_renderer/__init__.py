@@ -203,7 +203,7 @@ def get_cov_flat_dict(pc: GaussianModel,
     for name, cov in cov_dict.items():
         if cov.numel() == 0:
             continue
-        diag = cov.diagonal(-2, -1).flatten(1) if cov.dim() == 3 else cov
+        diag = cov.diagonal(0, -2, -1).flatten(1) if cov.dim() == 3 else cov
         if USE_FISHER_SIGMA:
             diag = _sanitize_cov_diag(diag.detach(), max_percentile, min_floor)
         cov_flat[name] = diag
@@ -516,12 +516,13 @@ def estimate_uncertainty(
 
     # ‒‒ 8) 伪彩色映射 & 返回，保留 raw 以便 npz 存储 ‒‒
     norm = (unc_img - unc_img.min()) / (unc_img.max() - unc_img.min() + 1e-8)
-    unc_rgb = torch.from_numpy(cm.cividis(norm.cpu().numpy())[...,:3]) \
+    unc_rgb = torch.from_numpy(cm.viridis(norm.cpu().numpy())[...,:3]) \
                     .permute(2,0,1).to(img.device)
 
     out = {
         "render"          : img.detach(),
         "uncertainty"     : unc_rgb,
+        "depth"           : rd["depth"].detach()  # Pass depth
     }
     if return_raw:
         out["uncertainty_raw"] = unc_img.detach()

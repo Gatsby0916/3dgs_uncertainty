@@ -1,5 +1,5 @@
 # ================================================================
-#  Training Script for Gaussian Splatting
+#  Training Script for Gaussian Splatting - Aligned with FisherRF
 # ================================================================
 # Copyright (C) 2023, Inria
 # GRAPHDECO research group, https://team.inria.fr/graphdeco
@@ -44,7 +44,7 @@ try:
     SPARSE_ADAM_AVAILABLE = True
 except ImportError:
     SPARSE_ADAM_AVAILABLE = False
-import numpy as np                          # ← 新增
+import numpy as np
 
 # ───────────────── segmentation helper ────────────────
 def load_seg_prob(seg_dir: str, cam) -> torch.Tensor:
@@ -62,9 +62,11 @@ def load_seg_prob(seg_dir: str, cam) -> torch.Tensor:
 # ╭─────────────────── Core Training Loop ──────────────────────────╮ #
 def training(dataset, opt, pipe, testing_iterations,
              saving_iterations, checkpoint_iterations,
-             checkpoint, debug_from):
+             checkpoint, debug_from, base_iter, args):
+
     """
     Main training loop for optimizing Gaussian splatting parameters.
+    Aligned with FisherRF logic for SH updates and learning rate.
     """
 
     # Check for SparseAdam availability if requested
@@ -77,7 +79,8 @@ def training(dataset, opt, pipe, testing_iterations,
     # Create GaussianModel and Scene instances
     gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
     scene     = Scene(dataset, gaussians)
-        # ─── 过滤训练视图 (train_split) ──────────────────────────────
+    
+    # ─── 过滤训练视图 (train_split) ──────────────────────────────
     if hasattr(args, "train_split") and args.train_split:
         import pathlib
         keep = set(line.strip() for line in open(args.train_split))
@@ -98,14 +101,19 @@ def training(dataset, opt, pipe, testing_iterations,
         after_total = sum(len(lst) for lst in scene.train_cameras.values())
         print(f"[train_split] keep {after_total} / {before_total}  views")
 
-
     gaussians.training_setup(opt)
 
     # Resume from checkpoint if provided
     first_iter = 0
     if checkpoint:
-        model_state, first_iter = torch.load(checkpoint, map_location="cuda")
+        model_state, _ = torch.load(checkpoint, map_location="cuda", weights_only=False)
         gaussians.restore(model_state, opt)
+        for g in gaussians.optimizer.param_groups:
+            g['state'] = {}
+        gaussians.exposure_optimizer.state = {}
+
+    # FisherRF 基准：由 CLI 显式给出
+    base_iter = base_iter
 
     # Set background color tensor
     bg_color   = [1, 1, 1] if dataset.white_background else [0, 0, 0]
@@ -123,13 +131,11 @@ def training(dataset, opt, pipe, testing_iterations,
 
     ema_loss, ema_Ldepth = 0.0, 0.0
     use_seg = bool(args.seg_dir)
-    progress = tqdm(range(first_iter, opt.iterations),
-                desc="Training",
-                disable=args.quiet)          # ← 加了 disable
+    progress = tqdm(range(1, opt.iterations + 1), desc="Training", disable=args.quiet)
 
-    first_iter += 1  # adjust start of loop
-
-    for iteration in range(first_iter, opt.iterations + 1):
+    for iteration in range(1, opt.iterations + 1):          # 1-based loop
+        cur_iter   = iteration
+        global_iter = base_iter + cur_iter 
 
         # Select a random training camera
         if not viewpoint_stack:
@@ -141,6 +147,13 @@ def training(dataset, opt, pipe, testing_iterations,
 
         # Choose random or fixed background
         bg = torch.rand(3, device="cuda") if opt.random_background else background
+
+        # ═══ FisherRF 对齐：学习率更新使用相对迭代计数 ═══
+        gaussians.update_learning_rate(cur_iter)
+
+        # ═══ FisherRF 对齐：可配置的SH更新逻辑 ═══
+        if global_iter > args.sh_up_after and global_iter % args.sh_up_every == 0:
+            gaussians.oneupSHdegree()
 
         # Render image and obtain radii
         render_pkg = render(
@@ -160,6 +173,7 @@ def training(dataset, opt, pipe, testing_iterations,
             vis_idx = render_pkg["visibility_filter"][:, 0]           # Long[M]
             gaussians.accumulate_segmentation(vis_idx, seg_map)
         # ───────────────────────────────────────────────────────────
+        
         # Compute L1 and SSIM losses
         Ll1   = l1_loss(image, gt_img)
         ssimv = (
@@ -170,12 +184,12 @@ def training(dataset, opt, pipe, testing_iterations,
 
         # Depth L1 regularization if enabled
         Ll1depth = 0.0
-        if depth_l1_weight(iteration) > 0 and viewpoint_cam.depth_reliable:
+        if depth_l1_weight(cur_iter) > 0 and viewpoint_cam.depth_reliable:
             invD   = render_pkg["depth"]
             mono   = viewpoint_cam.invdepthmap.cuda()
             mask_d = viewpoint_cam.depth_mask.cuda()
             Ll1depth_pure = torch.abs((invD - mono) * mask_d).mean()
-            loss += depth_l1_weight(iteration) * Ll1depth_pure
+            loss += depth_l1_weight(cur_iter) * Ll1depth_pure
             Ll1depth = Ll1depth_pure.item()
 
         # Backpropagate loss
@@ -209,22 +223,20 @@ def training(dataset, opt, pipe, testing_iterations,
         # Update covariance with single Fisher step
         gaussians.update_covariance(
             grads_dict,
-            cur_iter   = iteration,
+            cur_iter   = cur_iter,
             max_iter   = opt.iterations,
             loss_scalar= loss.item()
         )
         # ─── 2) 定期刷新 seg_mask & 可选硬裁剪 ─────────────────────
-        if use_seg and (iteration % args.seg_update_interval == 0):
+        if use_seg and (cur_iter % args.seg_update_interval == 0):
             to_prune = gaussians.compute_seg_prob_and_mask(
                 beta=args.seg_beta, tau=args.seg_tau)
             if to_prune is not None and to_prune.any():
                 gaussians.prune_points(to_prune)
         # ───────────────────────────────────────────────────────────
-        # 2. Update learning rate schedule
-        gaussians.update_learning_rate(iteration)
 
         # Maintain densification and pruning logic
-        if iteration < opt.densify_until_iter:
+        if cur_iter < opt.densify_until_iter:
             viewspace_pts = render_pkg["viewspace_points"]
             vis_filter    = render_pkg["visibility_filter"]
             gaussians.max_radii2D[vis_filter] = torch.max(
@@ -232,16 +244,16 @@ def training(dataset, opt, pipe, testing_iterations,
             )
             gaussians.add_densification_stats(viewspace_pts, vis_filter)
 
-            if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                max_sz = 20 if iteration > opt.opacity_reset_interval else None
+            if cur_iter > opt.densify_from_iter and cur_iter % opt.densification_interval == 0:
+                max_sz = 20 if cur_iter > opt.opacity_reset_interval else None
+                # ═══ FisherRF 对齐：使用可配置的min_opacity ═══
                 gaussians.densify_and_prune(
-                    opt.densify_grad_threshold, 0.005,
+                    opt.densify_grad_threshold, args.min_opacity,
                     scene.cameras_extent, max_sz, radii
                 )
 
-            if iteration % opt.opacity_reset_interval == 0 or (
-               dataset.white_background and iteration == opt.densify_from_iter
-            ):
+            if cur_iter % opt.opacity_reset_interval == 0 or (
+                dataset.white_background and cur_iter == opt.densify_from_iter):
                 gaussians.reset_opacity()
 
         # Optimizer step for exposure and parameters
@@ -263,23 +275,24 @@ def training(dataset, opt, pipe, testing_iterations,
         if iteration % 10 == 0:
             progress.set_postfix(Loss=f"{ema_loss:.6f}", Depth=f"{ema_Ldepth:.6f}")
             progress.update(10)
-        if iteration == opt.iterations:
+        if iteration == opt.iterations - 1:
             progress.close()
 
         training_report(
-            tb_writer, iteration, Ll1, loss, l1_loss,
+            tb_writer, global_iter, Ll1, loss, l1_loss,
             0.0, testing_iterations, scene, render,
             (pipe, background, 1.0, SPARSE_ADAM_AVAILABLE, None, dataset.train_test_exp),
             dataset.train_test_exp
         )
 
-        if iteration in saving_iterations:
+        if global_iter in saving_iterations:
             print(f"\n[ITER {iteration}] Saving Gaussians")
-            scene.save(iteration)
+            scene.save(global_iter)
 
-        if iteration in checkpoint_iterations:
-            torch.save((gaussians.capture(), iteration),
-                       os.path.join(scene.model_path, f"chkpnt{iteration}.pth"))
+        if global_iter in checkpoint_iterations:
+            torch.save((gaussians.capture(), global_iter),
+                    os.path.join(scene.model_path, f"chkpnt{global_iter}.pth"))
+
     print("[config] grad_boost[f_rest] =", grad_boost["f_rest"])
     print("\nTraining complete.")
 
@@ -311,7 +324,7 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss,
 
 # ╭──────────────────────── CLI ─────────────────────────╯ #
 if __name__ == "__main__":
-    parser = ArgumentParser("Training script")
+    parser = ArgumentParser("Training script - Aligned with FisherRF")
     lp = ModelParams(parser)
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
@@ -321,14 +334,32 @@ if __name__ == "__main__":
     parser.add_argument("--debug_from", type=int, default=-1)
     parser.add_argument("--detect_anomaly", action="store_true")
     parser.add_argument("--test_iterations", nargs="+", type=int,
-                        default=[3_0000])
+                        default=[7_000, 15_000, 20_000, 30_000])
     parser.add_argument("--save_iterations", nargs="+", type=int,
-                        default=[3_0000])
+                        default=[7_000, 30_000])
     parser.add_argument("--quiet",  action="store_true")
     parser.add_argument("--disable_viewer", action="store_true")
-    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[]
-    )
+    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default=None)
+    parser.add_argument("--iterations_per_segment", type=int, default=None,
+                    help="If set, override opt.iterations so that each segment runs a local step schedule")
+    parser.add_argument("--base_iter", type=int, default=0,
+                    help="Number of global iterations completed before this segment (for logging only)")
+
+    # ═══ FisherRF 对齐参数 ═══
+    parser.add_argument("--sh_up_every", type=int, default=5_000, 
+                        help="increase spherical harmonics every N iterations")
+    parser.add_argument("--sh_up_after", type=int, default=-1, 
+                        help="start to increate active_sh_degree after N iterations")
+    parser.add_argument("--min_opacity", type=float, default=0.005, 
+                        help="min_opacity to prune")
+    
+    # ═══ FisherRF 训练参数对齐 ═══
+    parser.add_argument("--reg_lambda", type=float, default=1e-6, 
+                        help="Fisher regularization lambda (FisherRF specific)")
+    parser.add_argument("--filter_out_grad", nargs="+", type=str, default=["rotation"],
+                        help="gradient parameters to filter out")
+
     # ───── segmentation control ─────
     parser.add_argument("--seg_dir", type=str, default="", help="folder with *.npy foreground-prob maps")
     parser.add_argument("--seg_beta", type=float, default=5.0, help="soft mask coefficient β")
@@ -337,6 +368,9 @@ if __name__ == "__main__":
     parser.add_argument("--train_split", type=str, default="", help="txt file with training split")
 
     args = parser.parse_args(sys.argv[1:])
+    if args.iterations_per_segment is not None:
+        args.iterations = args.iterations_per_segment
+
     args.save_iterations.append(args.iterations)
 
     print("Optimizing", args.model_path)
@@ -351,5 +385,7 @@ if __name__ == "__main__":
         lp.extract(args), op.extract(args), pp.extract(args),
         args.test_iterations, args.save_iterations,
         args.checkpoint_iterations, args.start_checkpoint,
-        args.debug_from
+        args.debug_from,
+        args.base_iter,
+        args  # 传递args参数以支持FisherRF对齐功能
     )
