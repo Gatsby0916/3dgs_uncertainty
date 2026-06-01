@@ -30,7 +30,7 @@ try:
     from lpipsPyTorch.modules import lpips
 except ImportError as e:
     print(f"❌ 导入错误: {e}")
-    print("请确保在3dgs_uncertainty目录下运行此脚本")
+    print("请确保在 OUGS 项目根目录下运行此脚本")
     sys.exit(1)
 
 

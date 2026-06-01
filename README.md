@@ -18,7 +18,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.0-EE4C2C.svg?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![CUDA](https://img.shields.io/badge/CUDA-11.8%20%7C%2012.x-76B900.svg?style=flat&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
-[![Stars](https://img.shields.io/github/stars/Gatsby0916/3dgs_uncertainty?style=flat&logo=github)](https://github.com/Gatsby0916/3dgs_uncertainty/stargazers)
+[![Stars](https://img.shields.io/github/stars/Gatsby0916/OUGS?style=flat&logo=github)](https://github.com/Gatsby0916/OUGS/stargazers)
 
 <br/>
 
@@ -43,7 +43,7 @@
 
 <div align="center">
 
-<a href="https://github.com/Gatsby0916/3dgs_uncertainty/raw/main/assets/ougs_fast_forward.mp4">
+<a href="https://github.com/Gatsby0916/OUGS/raw/main/assets/ougs_fast_forward.mp4">
   <img src="assets/video_poster.jpg" width="70%" alt="Click to play fast-forward video"/>
 </a>
 
@@ -173,7 +173,7 @@ OUGS substantially outperforms ActiveNeRF, FisherRF, Bayes' Rays and GauSS-MI at
 ## 📂 Repository Layout
 
 ```
-3dgs_uncertainty/
+OUGS/
 ├── train.py · render.py · metrics.py     # entry points
 ├── gaussian_renderer/                    # Jacobian-aware renderer + Fisher utils
 ├── scene/                                # GaussianModel with Fisher-EMA covariance
