@@ -137,10 +137,12 @@ A random-view baseline lives at [`pipeline/random_pipeline.py`](pipeline/random_
 ### 📐 Evaluation
 
 ```bash
-python evaluation/masked_metrics.py -m <output_dir> --split test
+python evaluation/masked_metrics.py <output_dir>/test/ours_<iter> \
+       --mask-dir <path/to/scene>/mask \
+       --output-json results.json
 ```
 
-Object-masked PSNR / SSIM / LPIPS plus the AUSE uncertainty-calibration metric are implemented under [`evaluation/`](evaluation/).
+Pass one or more `render_paths` positional arguments (each pointing to a `<output>/test/ours_<iter>` directory). Object-masked PSNR / SSIM / LPIPS plus the AUSE uncertainty-calibration metric are implemented under [`evaluation/`](evaluation/).
 
 <br/>
 

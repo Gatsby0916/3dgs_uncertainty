@@ -1,20 +1,27 @@
 name: 3dgs
 channels:
   - pytorch
+  - nvidia
   - conda-forge
   - defaults
 dependencies:
-  - cudatoolkit=11.6
+  - python=3.10
+  - pip>=23.0
+  - pytorch>=2.0
+  - torchvision
+  - pytorch-cuda=11.8     # change to 12.1 if your driver requires it
   - plyfile
-  - python=3.7.13
-  - pip=22.3.1
-  - pytorch=1.12.1
-  - torchaudio=0.12.1
-  - torchvision=0.13.1
   - tqdm
+  - numpy<2.0             # diff_gaussian_rasterization not yet ABI-compatible with numpy 2.x
+  - matplotlib
+  - pillow
+  - scikit-image
+  - scipy
+  - pyyaml
   - pip:
-    - submodules/diff-gaussian-rasterization
-    - submodules/simple-knn
-    - submodules/fused-ssim
-    - opencv-python
-    - joblib
+      - imageio
+      - opencv-python
+      - joblib
+      - submodules/diff-gaussian-rasterization
+      - submodules/simple-knn
+      - submodules/fused-ssim
