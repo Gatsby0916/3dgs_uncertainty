@@ -47,10 +47,10 @@ def convert_mask_to_png(npy_path, output_path, threshold=0.5):
     
     print(f"转换完成: {os.path.basename(npy_path)} -> {os.path.basename(output_path)}")
 
-def process_dataset(dataset_name):
+def process_dataset(dataset_name, root: str):
     """处理单个数据集的所有mask文件"""
-    mask_dir = f"/home/haiyi/3dgs_uncertainty/LF/ours/{dataset_name}/mask"
-    output_dir = f"/home/haiyi/3dgs_uncertainty/LF/ours/{dataset_name}/mask_png"
+    mask_dir = os.path.join(root, dataset_name, "mask")
+    output_dir = os.path.join(root, dataset_name, "mask_png")
     
     # 创建输出目录
     os.makedirs(output_dir, exist_ok=True)
@@ -77,20 +77,22 @@ def main():
     parser.add_argument('--dataset', type=str, choices=['africa', 'basket', 'statue', 'torch', 'all'], 
                         default='all', help='要处理的数据集')
     parser.add_argument('--threshold', type=float, default=0.5, help='概率阈值')
-    
+    parser.add_argument('--root', type=str, required=True,
+                        help='dataset root, contains <dataset>/mask/*.npy')
+
     args = parser.parse_args()
-    
+
     if args.dataset == 'all':
         datasets = ['africa', 'basket', 'statue', 'torch']
     else:
         datasets = [args.dataset]
-    
+
     print("=== 概率掩码转PNG工具 ===")
     print(f"阈值: {args.threshold}")
     print(f"颜色映射: viridis")
-    
+
     for dataset in datasets:
-        process_dataset(dataset)
+        process_dataset(dataset, args.root)
     
     print("\n✅ 所有转换完成！")
 

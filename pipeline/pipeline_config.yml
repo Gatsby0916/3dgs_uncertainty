@@ -50,6 +50,11 @@ opt_params:
   depth_l1_weight_final: 0.001
 
 # —— 数据集列表（多数据集支持） ——
+# 每条目应该是一个 COLMAP-style 场景目录（包含 sparse/0/）。
+# 例:
+#   datasets:
+#     - "/abs/path/to/your_scene"
+#     - "data/MIP360/bicycle"
 datasets:
-  - "LF/basket"
+  - "data/your_scene"
 

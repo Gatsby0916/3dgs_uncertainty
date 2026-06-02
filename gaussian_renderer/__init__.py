@@ -528,52 +528,6 @@ def estimate_uncertainty(
         out["uncertainty_raw"] = unc_img.detach()
     return out
 
-    # # 7. Identify worst patch & optionally worst Gaussian
-    # worst_idx = patch_unc.argmax().item()
-    # wi, wj   = divmod(worst_idx, cols)
-    # wy0, wy1 = wi*patch_size, min((wi+1)*patch_size, H)
-    # wx0, wx1 = wj*patch_size, min((wj+1)*patch_size, W)
-
-    # max_gaussian_idx = None
-    # try:
-    #     max_gaussian_idx, _ = find_max_uncertainty_gaussian_in_patch(
-    #         viewpoint_camera, pc, pipe, bg_color,
-    #         (wy0, wy1, wx0, wx1),
-    #         cov_flat_dict, K_COLOR,
-    #         separate_sh, override_color, use_trained_exp,
-    #         patch_size,
-    #         gaussian_search_tol=max(patch_size*2, 24)
-    #     )
-    # except RuntimeError:
-    #     pass
-
-    # norm_u = (uncertainty_img - uncertainty_img.min()) / \
-    #          (uncertainty_img.max() - uncertainty_img.min() + 1e-8)
-    # uncertainty_rgb = torch.from_numpy(
-    #     cm.cividis(norm_u.cpu().numpy())[...,:3]
-    # ).permute(2,0,1).to(rendered_image.device)
-
-    # # 8. Highlight worst patch region
-    # hi_color = torch.tensor([0.9,0.2,0.6], device=rendered_image.device).view(3,1,1)
-    # uncertainty_rgb[:, wy0:wy1, wx0:wx1] = (
-    #     0.7 * uncertainty_rgb[:, wy0:wy1, wx0:wx1] + 0.3 * hi_color
-    # )
-
-    # if DEBUG:
-    #     print(f"Worst patch idx={worst_idx}, uncertainty={patch_unc[worst_idx]:.3e}, coords=({wy0}:{wy1},{wx0}:{wx1})")
-
-    # result = {
-    #     "render"           : rendered_image.detach(),
-    #     "uncertainty"      : uncertainty_rgb,
-    #     # "max_patch_idx"    : worst_idx,
-    #     # "max_patch_coords" : (wy0, wy1, wx0, wx1),
-    #     # "max_gaussian_idx" : max_gaussian_idx
-    # }
-    # if return_raw:
-    #     result["uncertainty_raw"] = uncertainty_img
-
-    # return result
-
 
 # =========================================================
 #  VI.  Single Gaussian Localization (within worst patch)

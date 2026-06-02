@@ -130,18 +130,18 @@ def extract_frame_id(filename, dataset_name):
         return match.group(1)
     return None
 
-def process_dataset(dataset_name, enhancement_factor=5.0, colormap='viridis'):
+def process_dataset(dataset_name, root, enhancement_factor=5.0, colormap='viridis'):
     """处理单个数据集的所有文件"""
     print(f"\n处理数据集: {dataset_name}")
-    
+
     # 获取数据集配置
     config = get_dataset_config(dataset_name)
     if not config:
         print(f"错误: 不支持的数据集 {dataset_name}")
         return 0
-    
+
     # 设置路径
-    base_dir = f"/home/haiyi/3dgs_uncertainty/LF/ours/{dataset_name}"
+    base_dir = os.path.join(root, dataset_name)
     uncertainty_dir = os.path.join(base_dir, config['uncertainty_dir'])
     mask_dir = os.path.join(base_dir, "mask")
     output_dir = os.path.join(base_dir, "object_uncertainty_png")
@@ -232,21 +232,24 @@ def main():
                         help='Object区域的增强因子')
     parser.add_argument('--colormap', type=str, default='viridis',
                         help='颜色映射')
-    
+    parser.add_argument('--root', type=str, required=True,
+                        help='dataset root, contains <dataset>/{output,mask}')
+
     args = parser.parse_args()
-    
+
     if args.dataset == 'all':
         datasets = ['africa', 'basket', 'statue', 'torch']
     else:
         datasets = [args.dataset]
-    
+
     print("=== Object Uncertainty 生成工具 ===")
     print(f"增强因子: {args.enhancement_factor}")
     print(f"颜色映射: {args.colormap}")
-    
+    print(f"根目录: {args.root}")
+
     total_processed = 0
     for dataset in datasets:
-        count = process_dataset(dataset, args.enhancement_factor, args.colormap)
+        count = process_dataset(dataset, args.root, args.enhancement_factor, args.colormap)
         total_processed += count
     
     print(f"\n✅ 处理完成！总共处理了 {total_processed} 个文件")

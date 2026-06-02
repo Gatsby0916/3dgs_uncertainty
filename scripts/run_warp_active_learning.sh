@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.." || exit 1
 
 SCENE=${1:-basket}
 DEVICE=${2:-cuda}
-PYTHON_EXE="/home/haiyi/miniconda/envs/3dgs/bin/python"
+PYTHON_EXE="${PYTHON_EXE:-python}"
 
 # 硬编码路径，可根据需要修改
 DATASET_ROOT="LF/ours/$SCENE"

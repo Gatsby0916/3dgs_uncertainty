@@ -8,7 +8,7 @@
 cd "$(dirname "$0")/.." || exit 1
 
 SCENES="africa basket statue torch"
-PYTHON_EXE="/home/haiyi/miniconda/envs/3dgs/bin/python"
+PYTHON_EXE="${PYTHON_EXE:-python}"
 
 # 结果汇总目录
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
