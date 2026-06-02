@@ -144,6 +144,15 @@ python evaluation/masked_metrics.py <output_dir>/test/ours_<iter> \
 
 Pass one or more `render_paths` positional arguments (each pointing to a `<output>/test/ours_<iter>` directory). Object-masked PSNR / SSIM / LPIPS plus the AUSE uncertainty-calibration metric are implemented under [`evaluation/`](evaluation/).
 
+### 🛠 Other utilities
+
+| Script | Purpose |
+| :--- | :--- |
+| [`metrics.py`](metrics.py) | Vanilla (unmasked) PSNR / SSIM / LPIPS over a rendered split — same CLI as upstream 3DGS |
+| [`convert.py`](convert.py) | Wrap a folder of `images/` into a COLMAP scene (sparse / dense reconstruction via COLMAP) |
+| [`extract_depth.py`](extract_depth.py) | Export per-view depth maps from a trained model |
+| [`docs/README_PIPELINE.md`](docs/README_PIPELINE.md) | Deeper walk-through of the NBV pipeline (config knobs, segmentation flags, scoring modes) |
+
 <br/>
 
 ## 📊 Results
