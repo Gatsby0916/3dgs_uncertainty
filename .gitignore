@@ -53,6 +53,7 @@ images/
 # Result outputs (regenerable, large)
 /random_results/
 /ablation_results/
+/results/
 
 # Per-scene training / test outputs
 **/output/
@@ -64,5 +65,3 @@ images/
 /final_masked_evaluation.json
 /final_masked_metrics_results.json
 /final_evaluation_40k_*/
-/results/*/results.json
-/results/*/per_view.json
