@@ -13,7 +13,7 @@
 [![Eurographics 2026](https://img.shields.io/badge/Eurographics-2026-3F51B5.svg?style=for-the-badge&logo=acm)](https://diglib.eg.org/handle/10.1111/cgf70363)
 [![DOI](https://img.shields.io/badge/DOI-10.1111%2Fcgf.70363-F57C00.svg?style=for-the-badge&logo=doi&logoColor=white)](https://doi.org/10.1111/cgf.70363)
 [![CGF](https://img.shields.io/badge/Computer%20Graphics%20Forum-1467--8659-2E7D32.svg?style=for-the-badge)](https://onlinelibrary.wiley.com/journal/14678659)
-[![License](https://img.shields.io/badge/License-Non--commercial-FBC02D.svg?style=for-the-badge)](LICENSE.md)
+[![License](https://img.shields.io/badge/License-Dual%20%28CC--BY%204.0%20%2F%20Non--commercial%29-FBC02D.svg?style=for-the-badge)](LICENSE-OUGS.md)
 
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.0-EE4C2C.svg?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org/)
@@ -218,7 +218,12 @@ Please also cite the original 3D Gaussian Splatting paper:
 
 ## 📝 License & Acknowledgments
 
-Non-commercial research use — see [`LICENSE.md`](LICENSE.md).
+This repository is **dual-licensed** — see [`LICENSE-OUGS.md`](LICENSE-OUGS.md) for the full notice.
+
+| Scope | Licence |
+| :--- | :--- |
+| OUGS original contributions (`pipeline/`, `evaluation/`, `preprocess/`, `scripts/`, `docs/`, `assets/`, `README.md`, and OUGS-specific additions inside upstream files) | **[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)** — matches the paper |
+| Upstream 3D Gaussian Splatting code (`gaussian_renderer/`, `scene/`, `utils/`, `lpipsPyTorch/`, `arguments/`, `submodules/`, and the unmodified portions of `train.py` / `render.py` / `metrics.py` / `convert.py` / `extract_depth.py`) | **Inria / MPII non-commercial research licence** — see [`LICENSE.md`](LICENSE.md) |
 
 This codebase extends the official [3D Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) implementation. We thank the original authors.
 
