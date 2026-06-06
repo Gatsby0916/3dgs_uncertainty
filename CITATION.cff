@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "OUGS: Active View Selection via Object-aware Uncertainty Estimation in 3DGS"
+authors:
+  - family-names: Li
+    given-names: Haiyi
+    affiliation: "The University of Adelaide"
+  - family-names: Chen
+    given-names: Qi
+    affiliation: "The University of Adelaide"
+  - family-names: Kalkofen
+    given-names: Denis
+    affiliation: "Graz University of Technology"
+  - family-names: Chen
+    given-names: Hsiang-Ting
+    affiliation: "The University of Adelaide"
+repository-code: "https://github.com/Gatsby0916/OUGS"
+license: "CC-BY-4.0"
+year: 2026
+preferred-citation:
+  type: article
+  title: "OUGS: Active View Selection via Object-aware Uncertainty Estimation in 3DGS"
+  authors:
+    - family-names: Li
+      given-names: Haiyi
+    - family-names: Chen
+      given-names: Qi
+    - family-names: Kalkofen
+      given-names: Denis
+    - family-names: Chen
+      given-names: Hsiang-Ting
+  journal: "Computer Graphics Forum"
+  year: 2026
+  issn: "1467-8659"
+  doi: "10.1111/cgf.70363"
+  publisher: "The Eurographics Association and John Wiley & Sons Ltd."

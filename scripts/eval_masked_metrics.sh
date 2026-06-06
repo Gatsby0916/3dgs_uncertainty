@@ -62,23 +62,6 @@ mkdir -p "$OUTPUT_DIR"
 echo "🔍 查找数据集..."
 DATASETS=()
 
-# 检查HDD输出目录
-if [[ -d "/hdd/gatsbyli/3dgs_output" ]]; then
-    echo "📁 检查HDD输出目录: /hdd/gatsbyli/3dgs_output"
-    for dataset_dir in /hdd/gatsbyli/3dgs_output/*/; do
-        if [[ -d "$dataset_dir" ]]; then
-            dataset_name=$(basename "$dataset_dir")
-            # 检查是否有对应的原始数据集
-            if [[ -d "data/$dataset_name" ]]; then
-                echo "   ✅ 找到数据集: $dataset_name"
-                DATASETS+=("$dataset_dir")
-            else
-                echo "   ⚠️  $dataset_name: 缺少原始数据集目录"
-            fi
-        fi
-    done
-fi
-
 # 检查本地数据集目录
 if [[ -d "data" ]]; then
     echo "📁 检查本地数据集目录: data/"
