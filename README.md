@@ -18,7 +18,6 @@
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.0-EE4C2C.svg?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![CUDA](https://img.shields.io/badge/CUDA-11.8%20%7C%2012.x-76B900.svg?style=flat&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
-[![Stars](https://img.shields.io/github/stars/Gatsby0916/OUGS?style=flat&logo=github)](https://github.com/Gatsby0916/OUGS/stargazers)
 
 <br/>
 
@@ -241,8 +240,6 @@ This codebase extends the official [3D Gaussian Splatting](https://github.com/gr
 <br/>
 
 <div align="center">
-
-⭐ **Found this useful? Give us a star!** ⭐
 
 <sub>Made with ❤️ at The University of Adelaide</sub>
 
